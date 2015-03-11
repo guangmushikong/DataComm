@@ -1,6 +1,7 @@
 #pragma once
 
 #include "datadefine.h"
+//#include "MatchAirLinePoint.h"
 #include <iostream>
  
 #define CONFIG_AIRLINE_PATH_NAME "..\..\config"
@@ -42,12 +43,14 @@ public:
 	static void GetExposurParam(EXPOSURE_PARAM &expParam);
 
 	static void registerGhtFile(std::string filePath,
-                                std::list<GuidancePoint*>& lsGPs);
+                                std::vector<GuidancePoint*>& vtrGPs);
+	
+	GuidancePoint getMatchingPointFromGPs(const COORDINATE& p);
 
-	void GetAirLinePTList( std::list<GuidancePoint*>& lsGPs );
+	void GetAirLinePTList( std::vector<GuidancePoint*>& vtrGPs );
 private:
 	static  EXPOSURE_PARAM      m_exposureParam;//曝光参数
 
-	static std::list<GuidancePoint*> m_lsAirLinePTInfo;///航线信息
+	static std::vector<GuidancePoint*> m_vtrAirLinePTInfo;///航线信息
 };
 

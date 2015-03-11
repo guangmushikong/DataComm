@@ -5,7 +5,7 @@
 #include "datadefine.h"
 
 EXPOSURE_PARAM    CSystemParam::m_exposureParam;
-std::list<GuidancePoint*> CSystemParam::m_lsAirLinePTInfo;
+std::vector<GuidancePoint*> CSystemParam::m_vtrAirLinePTInfo;
 CSystemParam::CSystemParam(void)
 {
 }
@@ -17,7 +17,7 @@ CSystemParam::~CSystemParam(void)
 
 void CSystemParam::IniSysParam()
 {
-	registerGhtFile(CONFIG_AIRLINE_PATH_NAME, m_lsAirLinePTInfo);
+	registerGhtFile(CONFIG_AIRLINE_PATH_NAME, m_vtrAirLinePTInfo);
 
 //	char buf[20];
 //	LPCWSTR my = "EXPOSURE" ;
@@ -37,7 +37,7 @@ void CSystemParam::GetExposurParam(EXPOSURE_PARAM &expParam)
 }
 
 void CSystemParam::registerGhtFile(std::string filePath,
-                                std::list<GuidancePoint*>& lsGPs)
+                                   std::vector<GuidancePoint*>& vtrGPs)
 {
     if(filePath.empty())
         return;
@@ -79,11 +79,12 @@ void CSystemParam::registerGhtFile(std::string filePath,
             if(std::string::npos != line.find("A1"))
             {
 				iss >> lineNum >> pointType >> dCoordX >> dCoordY >> dCoordZ >> type;
+				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
                 pGP = new GuidancePoint(GuidancePoint::A1Type, 
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
-										MyPointF(dCoordY, dCoordX),
+										point,
 #endif
 										lineNum);
 
@@ -91,11 +92,12 @@ void CSystemParam::registerGhtFile(std::string filePath,
             else if(std::string::npos != line.find("A2"))
             {
 				iss >> lineNum >> pointType >> dCoordX >> dCoordY >> dCoordZ >> type;
+				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
                 pGP = new GuidancePoint(GuidancePoint::A2Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
-										MyPointF(dCoordY, dCoordX),
+										point,
 #endif
 										lineNum);
 
@@ -103,33 +105,36 @@ void CSystemParam::registerGhtFile(std::string filePath,
             else if(std::string::npos != line.find("B1"))
             {
 				iss >> lineNum >> pointType >> dCoordX >> dCoordY >> dCoordZ >> type;
+				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
                 pGP = new GuidancePoint(GuidancePoint::B1Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
-										MyPointF(dCoordY, dCoordX),
+										point,
 #endif
 										lineNum);
             }
             else if(std::string::npos != line.find("B2"))
             {
 				iss >> lineNum >> pointType >> dCoordX >> dCoordY >> dCoordZ >> type;
+				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
                 pGP = new GuidancePoint(GuidancePoint::B2Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
-										MyPointF(dCoordY, dCoordX),
+										point,
 #endif
 										lineNum);
             }
             else
             {
 				iss >> lineNum >> PointNum >> dCoordX >> dCoordY >> dCoordZ >> type;
+				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
                 pGP = new GuidancePoint(GuidancePoint::Normal,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
-										MyPointF(dCoordY, dCoordX),
+										point,
 #endif
 										lineNum, PointNum);
             }
@@ -140,7 +145,7 @@ void CSystemParam::registerGhtFile(std::string filePath,
         vtr.push_back(QPointF(dCoordY, dCoordX));
         drawObject::registerGuidancePoint(pGP);
 #else
-        lsGPs.push_back(pGP);
+		vtrGPs.push_back(pGP);
 #endif
     }
     infile.close();
@@ -151,7 +156,15 @@ void CSystemParam::registerGhtFile(std::string filePath,
 #endif
 }
 
-void CSystemParam::GetAirLinePTList( std::list<GuidancePoint*>& lsGPs )
+void CSystemParam::GetAirLinePTList( std::vector<GuidancePoint*>& vtrGPs )
 {
-	lsGPs = m_lsAirLinePTInfo;
+	vtrGPs = m_vtrAirLinePTInfo;
+}
+
+GuidancePoint CSystemParam::getMatchingPointFromGPs(const COORDINATE& p)
+{
+	GuidancePoint point(GuidancePoint::AirPort, p);
+	int index = point.getMinDistanceIndex(m_vtrAirLinePTInfo);
+	GuidancePoint* pRlt = m_vtrAirLinePTInfo[index];
+	return GuidancePoint(*pRlt);
 }

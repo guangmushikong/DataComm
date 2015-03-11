@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "MatchAirLinePoint.h"
+#include "datadefine.h"
 #include <process.h> 
 
 /** 线程退出标志 */   
@@ -10,6 +11,7 @@ CMatchAirLinePoint::CMatchAirLinePoint(void)
 	m_hEvtsMatchThread = CreateEvent(NULL, TRUE, FALSE, NULL);
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 	m_hMachProcessThread = INVALID_HANDLE_VALUE;
+	m_sysParam.IniSysParam();
 }
 
 
@@ -103,4 +105,14 @@ void CMatchAirLinePoint::MatchCurrentAirLinePT(const COORDINATE position)
 
 	///更新当前拍摄点（换点时）
 //  m_pGlobalAirLine->SetCurrentPiont(\* *\);
+	GuidancePoint point = m_sysParam.getMatchingPointFromGPs(position);
+	CURRENT_POINT cP;
+	cP.lineIndex = point.nLineNum;
+	cP.pintIndex = point.nPointNum;
+	cP.position.high = point.point.high;
+	cP.position.lat  = point.point.lat;
+	cP.position.lon  = point.point.lon;
+	cP.airline_az = .0;
+	m_pGlobalAirLine->SetCurrentPiont(cP);
+	
 }

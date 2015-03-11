@@ -8,6 +8,9 @@
 #include "GlobalAirLine.h"
 #include "SystemParam.h"
 
+
+//class CSystemParam;
+
 class CMatchAirLinePoint : public IDataUpdate
 {
 public:
@@ -36,6 +39,7 @@ public:
 	CGlobalAirLine *m_pGlobalAirLine;
 
 	CSystemParam m_sysParam;
+	
 	///数据接收事件
 	HANDLE	m_hEvtsMatchThread;
 
