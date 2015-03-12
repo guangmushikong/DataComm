@@ -43,7 +43,8 @@ public:
 	static void GetExposurParam(EXPOSURE_PARAM &expParam);
 
 	static void registerGhtFile(std::string filePath,
-                                std::vector<GuidancePoint*>& vtrGPs);
+                                /*std::vector<GuidancePoint*>& vtrGPs*/
+								std::map<std::string, GuidancePointPtr> mapGPs);
 	
 	GuidancePoint getMatchingPointFromGPs(const COORDINATE& p);
 
@@ -51,6 +52,13 @@ public:
 private:
 	static  EXPOSURE_PARAM      m_exposureParam;//曝光参数
 
-	static std::vector<GuidancePoint*> m_vtrAirLinePTInfo;///航线信息
+	//static std::vector<GuidancePoint*> m_vtrAirLinePTInfo;///航线信息
+	static std::map<std::string, GuidancePointPtr> m_mapAirLinePTInfo;
+	/*
+	 * head is the key of m_mapAirLinePTInfo
+	 * head consist of two parts, the default value is 01-0A1. 
+	 * 1st is the line index(01), 2nd is the point index or point type(0A1)
+	*/
+	static std::string head;
 };
 
