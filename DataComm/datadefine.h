@@ -36,7 +36,14 @@ typedef struct GuidancePoint
         Normal
     };
 #ifdef _MS_MFC
-	GuidancePoint(){}
+	GuidancePoint()
+	{
+		point.high = .0;
+		point.lat  = .0;
+		point.lon  = .0;
+		nLineNum   = 0;
+		nPointNum  = 0;
+	}
     GuidancePoint(GuidancePointType t, /*MyPointF*/COORDINATE p, int lVle=0, int pVle=0):
         type(t),point(p), nLineNum(lVle), nPointNum(pVle){};
 	GuidancePoint(const GuidancePoint& GP)
@@ -58,6 +65,11 @@ typedef struct GuidancePoint
     int nLineNum; // belong to which line
     int nPointNum; // the sequence number
     GuidancePointType type; // airport or A1 or A2 or B1 or B2
+
+	bool distanceMatchFlag;
+	bool headingMatchFlag;
+	bool posingMatchFlag;
+	bool topologyMatchFlag;
 
 protected:
 	double getDistance(const COORDINATE& _p);

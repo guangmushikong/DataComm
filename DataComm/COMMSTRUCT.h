@@ -24,6 +24,7 @@ enum  COMM_MSGTYPE
 	MSG_GPVTG
 };
 
+
 typedef struct _COORDINATE
 {
 	///经度，单位度，东经为正，西经为负
@@ -35,6 +36,12 @@ typedef struct _COORDINATE
 	///海拔高度，单位米
 	double   high;
 }COORDINATE;
+
+struct BoundingBox
+{
+	COORDINATE minPoint;
+	COORDINATE maxPoint;
+};
 
 typedef struct _GPGGA
 {
@@ -94,9 +101,15 @@ typedef struct _CURRENT_POINT
 
 	///是否已拍摄完成
 	bool status;
-
+	 
 	///航线角度：与正北
 	double airline_az;
+
+	bool distanceMatchFlag;
+	bool headingMatchFlag;
+	bool posingMatchFlag;
+	bool topologyMatchFlag;
+
 }CURRENT_POINT;
 
 #endif

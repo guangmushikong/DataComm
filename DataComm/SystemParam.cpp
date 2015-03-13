@@ -7,6 +7,7 @@
 EXPOSURE_PARAM    CSystemParam::m_exposureParam;
 std::map<std::string, GuidancePointPtr> CSystemParam::m_mapAirLinePTInfo;
 std::string CSystemParam::head("01-0A1");
+BoundingBox* CSystemParam::pBoundingBox=0;
 
 CSystemParam::CSystemParam(void)
 {
@@ -40,7 +41,7 @@ void CSystemParam::GetExposurParam(EXPOSURE_PARAM &expParam)
 
 void CSystemParam::registerGhtFile(std::string filePath,
                                    /*std::vector<GuidancePoint*>& vtrGPs*/
-								   std::map<std::string, GuidancePointPtr> mapGPs)
+								   std::map<std::string, GuidancePointPtr>& mapGPs)
 {
     if(filePath.empty())
         return;
@@ -54,6 +55,9 @@ void CSystemParam::registerGhtFile(std::string filePath,
     double dCoordX, dCoordY, dCoordZ;
     int lineNum, PointNum, type;
     GuidancePoint* pGP = 0;
+	// the 2nd line of the file present the bounding box
+	// the bounding box should be stored 
+	unsigned int unFileLine = 0;
 
     std::ifstream infile(filePath);
     if(infile.fail() || infile.bad())
@@ -67,13 +71,23 @@ void CSystemParam::registerGhtFile(std::string filePath,
 	    iss.clear();
 		iss.str(line);
 
+		if (2 == (++unFileLine))
+		{
+			pBoundingBox = new BoundingBox;
+			double dMinX, dMinY, dMaxX, dMaxY;
+			iss >> dMinX >> dMaxX >> dMinY >> dMaxY;
+			pBoundingBox->minPoint.lat = dMinX;
+			pBoundingBox->minPoint.lon = dMinY;
+			pBoundingBox->maxPoint.lat = dMaxX;
+			pBoundingBox->maxPoint.lon = dMaxY;
+		}
+
         if(std::string::npos != line.find("AIRPORT"))
         {
             //iss.str(line);
             //iss >> head >> dCoordX >> dCoordY >> type;
             //pGP = new GuidancePoint(GuidancePoint::AirPort, QPointF(dCoordY, dCoordX));
             continue;
-
         }
         else if(std::string::npos != line.find("-"))
         {
@@ -168,58 +182,61 @@ void CSystemParam::GetAirLinePTList( std::vector<GuidancePoint*>& vtrGPs )
 	//vtrGPs = m_vtrAirLinePTInfo;
 }
 
+void CSystemParam::getNextGPHead(const std::string& _head, std::string& nextHead)
+{
+	nextHead = _head;
+
+	if (std::string::npos != nextHead.find("A1")) // A1 ==> A2
+	{
+		nextHead.replace(nextHead.find("A1"), 2, "A2");
+	}
+	else if (std::string::npos != nextHead.find("A2")) // A2 ==> normal
+	{
+		nextHead.replace(nextHead.find("A2"), 2, "01");
+	}
+	else if (std::string::npos != nextHead.find("B2")) // B2 ==> B1
+	{
+		nextHead.replace(nextHead.find("B2"), 2, "B1");
+	}
+	else if (std::string::npos != nextHead.find("B1")) // B1 ==> A1
+	{
+		std::string lineIndex = nextHead.substr(0, 2);
+		int nLineIndex = atoi(lineIndex.c_str());
+		nLineIndex += 1;
+		char buffer[7];
+		sprintf(buffer, "%02d-%s", nLineIndex, "0A1");
+		nextHead = buffer;
+		// it's possible that the map don't consist the new head
+	}
+	else // normal ==> normal or normal ==> B2
+	{
+		std::string pointIndex = nextHead.substr(3, 3);
+		int nPointIndex = atoi(pointIndex.c_str());
+		nPointIndex += 1;
+		char buffer[7];
+		sprintf(buffer, "%s-%03d", nextHead.substr(0, 2), nPointIndex);
+		nextHead = buffer;
+		if (m_mapAirLinePTInfo.end() == m_mapAirLinePTInfo.find(nextHead))
+		{
+			sprintf(buffer, "%s-%s", nextHead.substr(0, 2), "0B2");
+			nextHead = buffer;
+			if (m_mapAirLinePTInfo.end() == m_mapAirLinePTInfo.find(nextHead))
+			{
+				// there must be error, so report error
+			}
+		}
+	}
+}
+
 GuidancePoint CSystemParam::getMatchingPointFromGPs(const COORDINATE& p)
 {
-	//GuidancePoint point(GuidancePoint::AirPort, p);
-	//int index = point.getMinDistanceIndex(m_vtrAirLinePTInfo);
-	//GuidancePoint* pRlt = m_vtrAirLinePTInfo[index];
-	//return GuidancePoint(*pRlt);
+	GuidancePointPtr rlt = new GuidancePoint();
 	std::map<string, GuidancePointPtr>::iterator it = m_mapAirLinePTInfo.find(head);
-	GuidancePointPtr rlt = 0;
 	if (it != m_mapAirLinePTInfo.end())
 	{
 		rlt = it->second;
 		// edit the head to prepare for the next find
-		if (std::string::npos != head.find("A1")) // A1 ==> A2
-		{
-			head.replace(head.find("A1"), 2, "A2");
-		}
-		else if (std::string::npos != head.find("A2")) // A2 ==> normal
-		{
-			head.replace(head.find("A2"), 2, "01");
-		}
-		else if (std::string::npos != head.find("B2")) // B2 ==> B1
-		{
-			head.replace(head.find("B2"), 2, "B1");
-		}
-		else if (std::string::npos != head.find("B1")) // B1 ==> A1
-		{
-			std::string lineIndex = head.substr(0, 2);
-			int nLineIndex = atoi(lineIndex.c_str());
-			nLineIndex += 1;
-			char buffer[7];
-			sprintf(buffer, "%02d-%s", nLineIndex, "0A1");
-			head = buffer;
-			// it's possible that the map don't consist the new head
-		}
-		else // normal ==> normal or normal ==> B2
-		{
-			std::string pointIndex = head.substr(3, 3);
-			int nPointIndex = atoi(pointIndex.c_str());
-			nPointIndex += 1;
-			char buffer[7];
-			sprintf(buffer, "%s-%03d", head.substr(0, 2), nPointIndex);
-			head = buffer;
-			if (m_mapAirLinePTInfo.end() == m_mapAirLinePTInfo.find(head))
-			{
-				sprintf(buffer, "%s-%s", head.substr(0, 2), "0B2");
-				head = buffer;
-				if (m_mapAirLinePTInfo.end() == m_mapAirLinePTInfo.find(head))
-				{
-					// there must be error, so report error
-				}
-			}
-		}
+		getNextGPHead(head, head);
 	}
 	else
 	{

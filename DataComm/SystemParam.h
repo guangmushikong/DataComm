@@ -44,9 +44,11 @@ public:
 
 	static void registerGhtFile(std::string filePath,
                                 /*std::vector<GuidancePoint*>& vtrGPs*/
-								std::map<std::string, GuidancePointPtr> mapGPs);
+								std::map<std::string, GuidancePointPtr>& mapGPs);
 	
 	GuidancePoint getMatchingPointFromGPs(const COORDINATE& p);
+
+	void getNextGPHead(const std::string& _head, std::string& nextHead);
 
 	void GetAirLinePTList( std::vector<GuidancePoint*>& vtrGPs );
 private:
@@ -60,5 +62,6 @@ private:
 	 * 1st is the line index(01), 2nd is the point index or point type(0A1)
 	*/
 	static std::string head;
+	static BoundingBox* pBoundingBox;
 };
 
