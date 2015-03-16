@@ -24,56 +24,61 @@
 //};
 #endif
 
-typedef struct GuidancePoint
+class GuidancePointStatus
 {
-    enum GuidancePointType
-    {
-        AirPort,
-        A1Type,
-        A2Type,
-        B1Type,
-        B2Type,
-        Normal
-    };
+	friend class GuidancePoint;
+public:
+	GuidancePointStatus();
+	~GuidancePointStatus();
+	void resetStatus();
+private:
+	bool bAirLineMatched;
+	bool bDistanceMatched;
+	bool bHeadingMatched;
+	bool bPosingMatched;
+	bool bTopologyMatched;
+};
+
+class GuidancePoint
+{
+public:
+	enum GuidancePointType
+	{
+		AirPort,
+		A1Type,
+		A2Type,
+		B1Type,
+		B2Type,
+		Normal
+	};
 #ifdef _MS_MFC
-	GuidancePoint()
-	{
-		point.high = .0;
-		point.lat  = .0;
-		point.lon  = .0;
-		nLineNum   = 0;
-		nPointNum  = 0;
-	}
-    GuidancePoint(GuidancePointType t, /*MyPointF*/COORDINATE p, int lVle=0, int pVle=0):
-        type(t),point(p), nLineNum(lVle), nPointNum(pVle){};
-	GuidancePoint(const GuidancePoint& GP)
-	{
-		this->point.high = GP.point.high;
-		this->point.lat  = GP.point.lat;
-		this->point.lon  = GP.point.lon;
-		this->type = GP.type;
-		this->nLineNum = GP.nLineNum;
-		this->nPointNum = GP.nPointNum;
-	}
-    int getMinDistanceIndex(const std::vector<GuidancePoint*>& vtrGPs);
+	GuidancePoint();
+	GuidancePoint(GuidancePointType t, COORDINATE p, int lIndex=0, int pIndex=0);
+	//GuidancePoint(std::string header, COORDINATE p);
+	GuidancePoint(const GuidancePoint& GP);
+	~GuidancePoint();
+	void resetStatus(){ GP_Status.resetStatus(); }
+	void setAirLineMatchedStatus(bool status){ GP_Status.bAirLineMatched = status; }
+	bool getAirLineMatchedStatus(){ return GP_Status.bAirLineMatched; }
+	void setDistanceMatchedStatus(bool status){ GP_Status.bDistanceMatched = status; }
+	bool getDistanceMatchedStatus(){ return GP_Status.bDistanceMatched; }
+	void setHeadingMatchedStatus(bool status){ GP_Status.bHeadingMatched = status; }
+	bool getHeadingMatchedStatus(){ return GP_Status.bHeadingMatched; }
+	void setPosingMatchedStatus(bool status){ GP_Status.bPosingMatched = status; }
+	bool getPosingMatchedStatus(){ return GP_Status.bPosingMatched; }
+	void setTopologyMatchedStatus(bool status){ GP_Status.bTopologyMatched = status; }
+	bool getTopologyMatchedStatus(){ return GP_Status.bTopologyMatched; }
 	COORDINATE point;
 #else
-    GuidancePoint(GuidancePointType t, QPointF p, int lVle=0, int pVle=0):
-        type(t),point(p), nLineNum(lVle), nPointNum(pVle){};
-    QPointF point; // the coordinate
+	GuidancePoint(GuidancePointType t, QPointF p, int lVle=0, int pVle=0):
+		type(t),point(p), nLineNum(lVle), nPointNum(pVle){};
+		QPointF point; // the coordinate
 #endif
-    int nLineNum; // belong to which line
-    int nPointNum; // the sequence number
-    GuidancePointType type; // airport or A1 or A2 or B1 or B2
-
-	bool distanceMatchFlag;
-	bool headingMatchFlag;
-	bool posingMatchFlag;
-	bool topologyMatchFlag;
-
-protected:
-	double getDistance(const COORDINATE& _p);
-
-} *GuidancePointPtr;
+		std::string pointHeader;
+		int nLineIndex; // belong to which line
+		int nPointIndex; // the sequence number
+		GuidancePointType type;
+		GuidancePointStatus GP_Status;
+};
 
 #endif // DATADEFINE_H

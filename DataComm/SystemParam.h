@@ -3,6 +3,7 @@
 #include "datadefine.h"
 //#include "MatchAirLinePoint.h"
 #include <iostream>
+#include "GuidancePointMatch.h"
  
 #define CONFIG_AIRLINE_PATH_NAME "..\..\config"
 
@@ -54,14 +55,6 @@ public:
 	 */ 
 	static void GetExposurParam(EXPOSURE_PARAM &param);
 
-	static void registerGhtFile(std::string filePath,
-                                /*std::vector<GuidancePoint*>& vtrGPs*/
-								std::map<std::string, GuidancePointPtr>& mapGPs);
-	
-	GuidancePoint getMatchingPointFromGPs(const COORDINATE& p);
-
-	void getNextGPHead(const std::string& _head, std::string& nextHead);
-
 	void GetAirLinePTList( std::vector<GuidancePoint*>& vtrGPs );
 
 	 /**
@@ -82,23 +75,24 @@ public:
 	 *  @note     N/A 
 	 */ 
 	static void GetGpsCommParam(COMM_PARAM &param);
+
+	static bool getGaussCoord(OGRPoint& p)
+	{
+		return GP_Match.getGaussCoord(p);
+	}
+	static void getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
+	{
+		GP_Match.getMatchedGP(tgrGP, plane);
+	}
 private:
 	static  EXPOSURE_PARAM      m_exposureParam;//曝光参数
-
-	//static std::vector<GuidancePoint*> m_vtrAirLinePTInfo;///航线信息
-	static std::map<std::string, GuidancePointPtr> m_mapAirLinePTInfo;
-	/*
-	 * head is the key of m_mapAirLinePTInfo
-	 * head consist of two parts, the default value is 01-0A1. 
-	 * 1st is the line index(01), 2nd is the point index or point type(0A1)
-	*/
-	static std::string head;
-	static BoundingBox* pBoundingBox;
 
 	//相机串口参数
 	static COMM_PARAM m_cameraCommParam;
 
 	//GPS接收机串口参数
 	static COMM_PARAM m_gpsCommParam;
+
+	static GuidancePointMatch GP_Match;
 };
 

@@ -21,6 +21,7 @@
 
 class CExposure : public IDataUpdate
 {
+	friend class GuidancePointMatch;
 public:
 	CExposure(void);
 	~CExposure(void);
@@ -33,7 +34,7 @@ private:
 	void GetNextStepPt( COORDINATE ptA, double vl, double az, double freq, COORDINATE &cross );
 
 	///获取两点的方位角，正北夹角
-	double GetAngleFrom2Points(COORDINATE ptend, COORDINATE ptstar);
+	static double GetAngleFrom2Points(COORDINATE ptend, COORDINATE ptstar);
 
 	///获取两点距离
 	double GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart);

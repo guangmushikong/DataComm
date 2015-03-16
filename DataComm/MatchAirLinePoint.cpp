@@ -105,14 +105,15 @@ void CMatchAirLinePoint::MatchCurrentAirLinePT(const COORDINATE position)
 
 	///更新当前拍摄点（换点时）
 //  m_pGlobalAirLine->SetCurrentPiont(\* *\);
-	GuidancePoint point = m_sysParam.getMatchingPointFromGPs(position);
-	CURRENT_POINT cP;
-	cP.lineIndex = point.nLineNum;
-	cP.pintIndex = point.nPointNum;
-	cP.position.high = point.point.high;
-	cP.position.lat  = point.point.lat;
-	cP.position.lon  = point.point.lon;
-	cP.airline_az = .0;
-	m_pGlobalAirLine->SetCurrentPiont(cP);
+
+	//GuidancePoint point = m_sysParam.getMatchingPointFromGPs(position);
+	//CURRENT_POINT cP;
+	//cP.lineIndex = point.nLineNum;
+	//cP.pintIndex = point.nPointNum;
+	//cP.position.high = point.point.high;
+	//cP.position.lat  = point.point.lat;
+	//cP.position.lon  = point.point.lon;
+	//cP.airline_az = .0;
+	//m_pGlobalAirLine->SetCurrentPiont(cP);
 	
 }

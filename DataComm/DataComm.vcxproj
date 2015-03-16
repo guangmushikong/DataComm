@@ -39,6 +39,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>F:\Win_32bit\gdal\Release\include;$(IncludePath)</IncludePath>
+    <LibraryPath>F:\Win_32bit\gdal\Release\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -53,6 +55,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>gdal_i.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -81,7 +84,9 @@
     <ClInclude Include="datadefine.h" />
     <ClInclude Include="DataProcess.h" />
     <ClInclude Include="Exposure.h" />
+    <ClInclude Include="GaussProjection.h" />
     <ClInclude Include="GlobalAirLine.h" />
+    <ClInclude Include="GuidancePointMatch.h" />
     <ClInclude Include="IDataUpdate.h" />
     <ClInclude Include="INotify.h" />
     <ClInclude Include="MatchAirLinePoint.h" />
@@ -97,7 +102,9 @@
     <ClCompile Include="datadefine.cpp" />
     <ClCompile Include="DataProcess.cpp" />
     <ClCompile Include="Exposure.cpp" />
+    <ClCompile Include="GaussProjection.cpp" />
     <ClCompile Include="GlobalAirLine.cpp" />
+    <ClCompile Include="GuidancePointMatch.cpp" />
     <ClCompile Include="MatchAirLinePoint.cpp" />
     <ClCompile Include="SerialPort.cpp" />
     <ClCompile Include="stdafx.cpp">

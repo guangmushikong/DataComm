@@ -33,38 +33,55 @@
 //  dy = _y;
 //  dz = _z;
 //}
-
-double GuidancePoint::getDistance(const COORDINATE& _p)
+GuidancePoint::GuidancePoint()
 {
-	double lat_diff = point.lat - _p.lat;
-	double lon_diff = point.lon - _p.lon;
-	return (lat_diff*lat_diff + lon_diff*lon_diff);
+	point.high = .0;
+	point.lat  = .0;
+	point.lon  = .0;
+	nLineIndex   = 0;
+	nPointIndex  = 0;
+	pointHeader = "";
 }
 
-int GuidancePoint::getMinDistanceIndex(const std::vector<GuidancePoint*>& vtrGPs)
+GuidancePoint::~GuidancePoint()
 {
-	if(vtrGPs.size() < 1)
-		return 0;
-	double dMinDistance; // default value
-	int nIndex;
-	for(int i=0; i<vtrGPs.size(); ++i)
-	{
-		COORDINATE _p = vtrGPs[i]->point;
-		double dDistance = getDistance(_p);
-		// initialize the dMinDistance
-		if(0 == i)
-		{
-			dMinDistance = dDistance;
-			nIndex = i;
-			continue;
-		}
-
-		if(dDistance < dMinDistance)
-		{
-			dMinDistance = dDistance;
-			nIndex = i;
-		}
-	}
-	return nIndex;
 }
+GuidancePoint::GuidancePoint(GuidancePointType t, COORDINATE p, int lIndex, int pIndex):
+type(t),point(p), nLineIndex(lIndex), nPointIndex(pIndex)
+{		
+}
+
+GuidancePoint::GuidancePoint(const GuidancePoint& GP)
+{
+	this->point.high = GP.point.high;
+	this->point.lat  = GP.point.lat;
+	this->point.lon  = GP.point.lon;
+	this->type = GP.type;
+	this->nLineIndex = GP.nLineIndex;
+	this->nPointIndex = GP.nPointIndex;
+	this->pointHeader = GP.pointHeader;
+}
+
 #endif
+
+GuidancePointStatus::GuidancePointStatus()
+{
+	bAirLineMatched = false;
+	bDistanceMatched = false;
+	bHeadingMatched = false;
+	bPosingMatched = false;
+	bTopologyMatched = false;
+}
+
+GuidancePointStatus::~GuidancePointStatus()
+{
+}
+
+void GuidancePointStatus::resetStatus()
+{
+	bAirLineMatched = false;
+	bDistanceMatched = false;
+	bHeadingMatched = false;
+	bPosingMatched = false;
+	bTopologyMatched = false;
+}
