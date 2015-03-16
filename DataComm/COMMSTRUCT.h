@@ -21,7 +21,9 @@ enum  COMM_MSGTYPE
 	MSG_GPGGA = 1000,
 
 	///速度信息
-	MSG_GPVTG
+	MSG_GPVTG,
+
+	MSG_GPRMC
 };
 
 
@@ -60,6 +62,18 @@ typedef struct _GPVTG
     
 }GPVTG;
 
+typedef struct _GPRMC
+{
+	char      status;
+    
+	COORDINATE pos;
+
+		///速度单位km/h
+	double   vel;
+
+	///航向，与正北夹角，单位度
+	double   az;
+}GPRMC;
 /**
 *	消息体定义
 */
@@ -71,11 +85,14 @@ typedef union _COMM_MSGBODY
     ///速度信息数据
 	GPVTG    velocity;
 
+	///最简定位信息
+	GPRMC    position_info;
+
 }COMM_MSGBODY;
 
 
 /**
-*	固定/车载站消息结构定义
+*	消息结构定义
 */
 typedef struct _COMM_MESSAGE				
 {

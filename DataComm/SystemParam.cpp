@@ -8,6 +8,8 @@ EXPOSURE_PARAM    CSystemParam::m_exposureParam;
 std::map<std::string, GuidancePointPtr> CSystemParam::m_mapAirLinePTInfo;
 std::string CSystemParam::head("01-0A1");
 BoundingBox* CSystemParam::pBoundingBox=0;
+COMM_PARAM CSystemParam::m_cameraCommParam;
+COMM_PARAM CSystemParam::m_gpsCommParam;
 
 CSystemParam::CSystemParam(void)
 {
@@ -20,23 +22,53 @@ CSystemParam::~CSystemParam(void)
 
 void CSystemParam::IniSysParam()
 {
+	///获取航迹点信息
 	registerGhtFile(CONFIG_AIRLINE_PATH_NAME, m_mapAirLinePTInfo);
 
-//	char buf[20];
-//	LPCWSTR my = "EXPOSURE" ;
-//    GetPrivateProfileString("EXPOSURE", "DELAY", "", (char*)buf, 20, CONFIGFILENAME);
-//	m_exposureParam.delay = atof(buf);
+	///获取曝光容差参数
+	char buf[20];
+    int num = 0;
+    num =  GetPrivateProfileStringA("EXPOSURE", "DELAY", "", (char*)buf, 20, CONFIGFILENAME);
+	if( num > 0 )
+	{
+		m_exposureParam.delay = atof( buf );
+	}
+	memset(buf, 0, 20);
+	num =  GetPrivateProfileStringA("EXPOSURE", "DISTAN ", "", (char*)buf, 20, CONFIGFILENAME);
+	if( num > 0 )
+	{
+		m_exposureParam.distan= atof( buf );
+	}
+	memset(buf, 0, 20);
+	num =  GetPrivateProfileStringA("EXPOSURE", "ANGLE", "", (char*)buf, 20, CONFIGFILENAME);
+	if( num > 0 )
+	{
+		m_exposureParam.angle= atof( buf );
+	}
+    m_exposureParam.trigger =  GetPrivateProfileIntA("EXPOSURE", "TRIGGER",  0, CONFIGFILENAME);
 
-//	GetPrivateProfileString("EXPOSURE", "DISTAN", "", (char*)buf, 20, CONFIGFILENAME);
-//	m_exposureParam.distan = atof(buf);
+	///获取相机串口参数
+	m_cameraCommParam.port =  GetPrivateProfileIntA("CAMERA", "COMID", 0, CONFIGFILENAME);
+	m_cameraCommParam.baud =  GetPrivateProfileIntA("CAMERA", "BAUD",  0, CONFIGFILENAME);
 
-//    GetPrivateProfileString("EXPOSURE", "ANGLE", "", (char*)buf, 20, CONFIGFILENAME);
-//	m_exposureParam.angle = atof(buf);
+	///获取GPS接收机串口参数
+	m_gpsCommParam.port =  GetPrivateProfileIntA("GPS", "COMID", 0, CONFIGFILENAME);
+	m_gpsCommParam.baud =  GetPrivateProfileIntA("GPS", "BAUD",  0, CONFIGFILENAME);
 }
 
-void CSystemParam::GetExposurParam(EXPOSURE_PARAM &expParam)
+void CSystemParam::GetExposurParam(EXPOSURE_PARAM &param)
 {
-	expParam = m_exposureParam;
+	param = m_exposureParam;
+}
+
+void CSystemParam::GetCameraCommParam(COMM_PARAM &param)
+{
+	param = m_cameraCommParam;
+}
+
+void CSystemParam::GetGpsCommParam(COMM_PARAM &param)
+{
+	param = m_gpsCommParam;
 }
 
 void CSystemParam::registerGhtFile(std::string filePath,

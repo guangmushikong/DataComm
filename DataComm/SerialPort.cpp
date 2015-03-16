@@ -34,6 +34,7 @@ CSerialPort::CSerialPort(void)
     m_hListenThread = INVALID_HANDLE_VALUE;  
  
     InitializeCriticalSection(&m_csCommunicationSync);  
+	m_iBufferLen = 0;
  
 }  
  
@@ -270,9 +271,15 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
         {  
             std::cout << cRecved ; 
 			COMM_MESSAGE Msg;
-			pSerialPort->FormatTrans(cRecved, &Msg);
+			memset(pSerialPort->m_cRecved, 0, 1024);
+			int iBinLen = 0;
+			pSerialPort->DataPackage(cRecved, len, pSerialPort->m_cRecved, iBinLen);
+			if( iBinLen > 0)
+			{
+			    pSerialPort->FormatTrans(pSerialPort->m_cRecved, &Msg);
+				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
+			}
 
-			pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
             continue;  
         }  
     }  
@@ -332,6 +339,57 @@ bool CSerialPort::WriteData( unsigned char* pData, unsigned int length )
     return true;  
 }  
 
+/**
+* @brief: 拼包。
+* @description:	
+* @param: pBuffer 数据缓存
+* @param: size 数据长度
+* @return: N/A
+*/
+void CSerialPort::DataPackage( const char *pBuffer, const int size,  char *pOutBuffer, int &iBinLen)
+{
+	if (m_iBufferLen + size > 8192)
+		m_iBufferLen = 0;
+	
+	memcpy(m_strBuffer + m_iBufferLen, pBuffer, size);
+	m_iBufferLen += size;
+	int iCurLen = m_iBufferLen;
+	
+	int start = -1;
+	for (int i = 0; i < iCurLen; i++)
+	{
+		if ( (byte)m_strBuffer[i] == '$' )
+		{
+			start = i;
+		}
+		else if(start != -1 && (byte)m_strBuffer[i] == '\r' && (byte)m_strBuffer[i+1] == '\n')
+		{
+			if(start != 0 )
+			{
+			    memcpy(m_strBuffer, m_strBuffer + start, m_iBufferLen - start);
+			    m_iBufferLen = m_iBufferLen - start;
+			}
+
+			iBinLen = i - start;
+			memcpy(pOutBuffer, m_strBuffer, iBinLen);		
+
+			memcpy(m_strBuffer, m_strBuffer + iBinLen, m_iBufferLen - iBinLen);
+			m_iBufferLen = m_iBufferLen - iBinLen;
+
+			//		SetEvent(m_hEvtsDPThread[1]);
+
+			break;
+
+		}
+
+		if (i >= iCurLen)
+		{
+			m_iBufferLen = 0;
+		}
+	}
+	
+}
+
 int CSerialPort::FormatTrans(const string &data, COMM_MESSAGE *pMsg)
 {
     const char *pData = data.data();
@@ -355,6 +413,13 @@ int CSerialPort::FormatTrans(const string &data, COMM_MESSAGE *pMsg)
 		m_dataProcess.UnPackGPVTG(data, &pMsg->body.velocity);
 		return 1;
 	}
+	else if (strncmp(pData, "$GPRMC", 6) == 0)
+	{
+		pMsg->msgtype = MSG_GPRMC;
+		m_dataProcess.UnPackGPRMC(data, &pMsg->body.position_info);
+		return 1;
+	}
+	
 	return 1;
 }
 void CSerialPort::AddObserver( IDataUpdate *pObserver )

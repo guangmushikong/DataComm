@@ -24,7 +24,7 @@ void CDataProcess::UnPackGPGGA( const string &data, GPGGA *pMsg )
 		return;
 	}
 	double lat, lon ;
-	char cValue[10], flag;
+	char cValue[16], flag;
 	int num = 0, s_scale = 0, e_scale = 0;
 
 	for( int i = 0; i < data.length(); i++)
@@ -39,10 +39,10 @@ void CDataProcess::UnPackGPGGA( const string &data, GPGGA *pMsg )
 		{
 			e_scale = i;
 			///纬度
-			memset(cValue, 0, 10);
+			memset(cValue, 0, 16);
 	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
 			lat = atof(cValue);
-			pMsg->pos.lat = (int)lat % 100 + (lat - (int)lat % 100*100)/60;
+			pMsg->pos.lat = (int)lat / 100 + (lat - (int)lat / 100*100)/60;
 		}
 		else if( num == 4)
 		{
@@ -56,10 +56,10 @@ void CDataProcess::UnPackGPGGA( const string &data, GPGGA *pMsg )
 		{
 			e_scale = i;
 			///经度
-			memset(cValue, 0, 10);
+			memset(cValue, 0, 16);
 	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
 			lon = atof(cValue);
-	        pMsg->pos.lon = (int)lon % 100 + (lon - (int)lon % 100*100)/60;
+	        pMsg->pos.lon = (int)lon / 100 + (lon - (int)lon / 100*100)/60;
 		}
 		else if( num == 6)
 		{
@@ -78,7 +78,7 @@ void CDataProcess::UnPackGPGGA( const string &data, GPGGA *pMsg )
 		{
 			e_scale = i;
 			///高程
-			memset(cValue, 0, 10);
+			memset(cValue, 0, 16);
 	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
 			pMsg->pos.high = atof(cValue);
 			return;
@@ -96,7 +96,7 @@ void CDataProcess::UnPackGPVTG( const string &data, GPVTG *pMsg )
 		return;
 	}
 
-	char cValue[12];
+	char cValue[16];
 	int num = 0, s_scale = 0, e_scale = 0;
 
 	for( int i = 0; i < data.length(); i++)
@@ -111,7 +111,7 @@ void CDataProcess::UnPackGPVTG( const string &data, GPVTG *pMsg )
 		{
 			e_scale = i;
 			///方位
-			memset(cValue, 0, 12);
+			memset(cValue, 0, 16);
 	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
 			pMsg->az = atof(cValue);
 
@@ -121,13 +121,98 @@ void CDataProcess::UnPackGPVTG( const string &data, GPVTG *pMsg )
 		{
 			e_scale = i;
 			///速度
-			memset(cValue, 0, 12);
+			memset(cValue, 0, 16);
 	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
 			pMsg->vel = atof(cValue);
 
 			return;
 		}
 
+		s_scale = i + 1;
+	}
+}
+//$GPRMC,161229.487,A,3723.2475,N,12158.3416,W,0.13,309.62,120598,,*10  
+void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
+{
+	if ( data == "" )
+	{
+		return;
+	}
+	double lat, lon ;
+	char cValue[16], flag;
+	int num = 0, s_scale = 0, e_scale = 0;
+
+	for( int i = 0; i < data.length(); i++)
+	{
+		if( data[i] != ',' )
+		{
+			continue;
+		}
+
+		num++;
+		if(s_scale == i)
+		{
+			continue;
+		}
+
+		if( num == 3)
+		{
+	        ///定位状态
+	        memcpy(&pMsg->status, data.data() + s_scale, 1);
+		}
+		else if ( num == 4)
+		{
+			e_scale = i;
+			///纬度
+			memset(cValue, 0, 16);
+	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
+			lat = atof(cValue);
+			pMsg->pos.lat = (int)lat / 100 + (lat - (int)lat / 100*100)/60;
+		}
+		else if( num == 5)
+		{
+		    memcpy(&flag, data.data() + s_scale, 1);
+			if(flag == 'S')
+	        {
+		       pMsg->pos.lat = - pMsg->pos.lat;
+	        }
+		}
+		else if ( num == 6)
+		{
+			e_scale = i;
+			///经度
+			memset(cValue, 0, 16);
+	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
+			lon = atof(cValue);
+	        pMsg->pos.lon = (int)lon / 100 + (lon - (int)lon / 100*100)/60;
+		}
+		else if( num == 7)
+		{
+		    memcpy(&flag, data.data() + s_scale, 1);
+			if(flag == 'W')
+	        {
+		       pMsg->pos.lon = - pMsg->pos.lon;
+	        }
+		}
+		else if ( num == 8)
+		{
+			e_scale = i;
+			///速度(knots)
+			memset(cValue, 0, 16);
+	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
+			pMsg->vel = atof(cValue);
+			pMsg->vel *= 1.852;
+		}
+		else if ( num == 9)
+		{
+			e_scale = i;
+			///方位
+			memset(cValue, 0, 16);
+	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
+			pMsg->az = atof(cValue);
+
+			return;
+		}
 		s_scale = i + 1;
 	}
 }

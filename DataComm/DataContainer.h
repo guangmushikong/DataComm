@@ -73,6 +73,7 @@ template <typename T>
 CDataContainer<T>::CDataContainer()
 {
 	m_lstData.clear();
+	InitializeCriticalSection(&m_rwLock);
 }
 
 //Îö¹¹º¯Êý

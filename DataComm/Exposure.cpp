@@ -2,6 +2,7 @@
 #include "Exposure.h"
 #include <process.h> 
 #include "dos.h"
+#include <windows.h>
 
 /** 线程退出标志 */   
 bool CExposure::s_bExit = false; 
@@ -31,6 +32,12 @@ CExposure::CExposure(void)
 	ptstart.high = 79;
 	double dis = GetDistanFrom2Points(ptend,ptstart);
 	double an = GetAngleFrom2Points(ptend,ptstart);
+
+	DWORD my1 = GetTickCount();
+	Sleep(100);
+		DWORD my2 = GetTickCount();
+		DWORD nei = my2 - my1;
+		int sd = nei;
 	/*
 	CSystemParam::GetExposurParam(m_expParam);
 	double airline_AZ;
@@ -101,7 +108,7 @@ UINT CExposure::DPThdImp( LPVOID pParam )
 				while (m_pContainer->GetData(pstrMsg))
 				{
 					COMM_MESSAGE *commMsg = (COMM_MESSAGE* )pstrMsg->c_str();
-					if(commMsg->msgtype == MSG_GPGGA)
+					if(commMsg->msgtype == MSG_GPRMC)
 					{
 						IsNeedExposure(commMsg->body.position);
 					}
@@ -157,6 +164,7 @@ bool CExposure::IsNeedExposure(GPGGA pt)
 	GetProjectionPt(currentPT.airline_az, currentPT.position, m_lastAZ, pt.pos, outPT);
 	double angle = GetAngleFrom2Points(outPT, pt.pos);
 
+	//std::cout << "\r\nIsNeedExposure:over \r\n" ; 
 	if( abs(angle - m_lastAZ ) > 90 )
 	{
 		return false;

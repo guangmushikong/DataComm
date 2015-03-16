@@ -24,6 +24,7 @@
 #include "stdafx.h"
 #include "DataProcess.h"
 
+#define MAX_BUFFER_SIZE		1024
 using namespace std;
 /** 串口通信类  
  *     
@@ -179,9 +180,11 @@ private:
     static UINT WINAPI ListenThread(void* pParam);  
 
 	int FormatTrans(const string &data, COMM_MESSAGE *pMsg);
+
+	void DataPackage( const char *pBuffer, const int size,  char *pOutBuffer, int &iBinLen);
 protected:
       /** 串口句柄 */   
-   volatile HANDLE  m_hComm;  
+   volatile HANDLE  m_hComm;
 
    		// 重叠I/O 读
 	OVERLAPPED _ReadOverlapped;
@@ -207,6 +210,12 @@ private:
 	vector<IDataUpdate*> m_vecObservers;
 
 	CDataProcess m_dataProcess;
+
+	char	m_strBuffer[MAX_BUFFER_SIZE];
+		
+	int		m_iBufferLen;
+	
+	int		m_iBinLen;
 };  
  
 #endif //SERIALPORT_H_ 
