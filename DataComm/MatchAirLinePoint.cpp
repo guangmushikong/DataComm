@@ -102,14 +102,11 @@ void CMatchAirLinePoint::MatchCurrentAirLinePT(const GPRMC position)
 	//获取航迹点信息
 //	std::list<GuidancePoint*>& lsGPs;
 //	m_sysParam.GetAirLinePTList(lsGPs);
-
 ///获取当前拍摄点信息
 //	CURRENT_POINT pt;
 //	m_pGlobalAirLine->GetCurrentPiont(pt);
-
 	///更新当前拍摄点（换点时）
 //  m_pGlobalAirLine->SetCurrentPiont(\* *\);
-
 	//GuidancePoint point = m_sysParam.getMatchingPointFromGPs(position);
 	//CURRENT_POINT cP;
 	//cP.lineIndex = point.nLineNum;
@@ -119,5 +116,15 @@ void CMatchAirLinePoint::MatchCurrentAirLinePT(const GPRMC position)
 	//cP.position.lon  = point.point.lon;
 	//cP.airline_az = .0;
 	//m_pGlobalAirLine->SetCurrentPiont(cP);
+	GuidancePoint gp;
+	CURRENT_POINT cp;
+	CSystemParam::getMatchedGP(gp, position);
+	cp.position = gp.point;
+	cp.lineIndex = gp.nLineIndex;
+	cp.pintIndex = gp.nPointIndex;
+	cp.distanceMatchFlag = gp.getDistanceMatchedStatus();
+	cp.airlineMatchFlag = gp.getAirLineMatchedStatus();
+	cp.headingMatchFlag = gp.getHeadingMatchedStatus();
+	m_pGlobalAirLine->SetCurrentPiont(cp);
 	
 }

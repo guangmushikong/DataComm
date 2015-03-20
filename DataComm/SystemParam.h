@@ -55,8 +55,6 @@ public:
 	 */ 
 	static void GetExposurParam(EXPOSURE_PARAM &param);
 
-	void GetAirLinePTList( std::vector<GuidancePoint*>& vtrGPs );
-
 	 /**
 	 *  
 	 *  获取相机串口参数  

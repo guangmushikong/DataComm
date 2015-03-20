@@ -20,10 +20,6 @@ CSystemParam::~CSystemParam(void)
 
 void CSystemParam::IniSysParam()
 {
-	///获取航迹点信息
-	//registerGhtFile(CONFIG_AIRLINE_PATH_NAME, m_mapAirLinePTInfo);
-	GP_Match.readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
-
 	///获取曝光容差参数
 	char buf[20];
     int num = 0;
@@ -53,6 +49,11 @@ void CSystemParam::IniSysParam()
 	///获取GPS接收机串口参数
 	m_gpsCommParam.port =  GetPrivateProfileIntA("GPS", "COMID", 0, CONFIGFILENAME);
 	m_gpsCommParam.baud =  GetPrivateProfileIntA("GPS", "BAUD",  0, CONFIGFILENAME);
+
+	///获取航迹点信息
+	GP_Match.readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
+	GP_Match.setDistanceCriteria(m_exposureParam.distan);
+	GP_Match.setHeadingCriteria(m_exposureParam.angle);
 }
 
 void CSystemParam::GetExposurParam(EXPOSURE_PARAM &param)
@@ -68,11 +69,6 @@ void CSystemParam::GetCameraCommParam(COMM_PARAM &param)
 void CSystemParam::GetGpsCommParam(COMM_PARAM &param)
 {
 	param = m_gpsCommParam;
-}
-
-void CSystemParam::GetAirLinePTList( std::vector<GuidancePoint*>& vtrGPs )
-{
-	//vtrGPs = m_vtrAirLinePTInfo;
 }
 
 //void CSystemParam::getNextGPHead(const std::string& _head, std::string& nextHead)

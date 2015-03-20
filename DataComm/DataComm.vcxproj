@@ -85,6 +85,7 @@
     <ClInclude Include="DataProcess.h" />
     <ClInclude Include="Exposure.h" />
     <ClInclude Include="GaussProjection.h" />
+    <ClInclude Include="GEGeoCaculate.h" />
     <ClInclude Include="GlobalAirLine.h" />
     <ClInclude Include="GuidancePointMatch.h" />
     <ClInclude Include="IDataUpdate.h" />
@@ -103,6 +104,7 @@
     <ClCompile Include="DataProcess.cpp" />
     <ClCompile Include="Exposure.cpp" />
     <ClCompile Include="GaussProjection.cpp" />
+    <ClCompile Include="GEGeoCaculate.cpp" />
     <ClCompile Include="GlobalAirLine.cpp" />
     <ClCompile Include="GuidancePointMatch.cpp" />
     <ClCompile Include="MatchAirLinePoint.cpp" />

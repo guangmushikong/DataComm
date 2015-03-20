@@ -39,12 +39,6 @@ typedef struct _COORDINATE
 	double   high;
 }COORDINATE;
 
-struct BoundingBox
-{
-	COORDINATE minPoint;
-	COORDINATE maxPoint;
-};
-
 typedef struct _GPGGA
 {
 	char      status;

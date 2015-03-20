@@ -41,9 +41,9 @@ private:
 private:
 	double dDistanceCriteria;
 	double dHeadingCriteria;
-	//int nCurrentAirLine;
+	int nCurrentAirLine;
 	//std::string strPointIndex; // A1/A2/B1/B2/number
-	std::string header;
+	//std::string header;
 	OGRPoint centerPoint; // used to set Gauss Projection param
 	GuidancePoint currentGP;
 	std::map<int, std::vector<GuidancePoint*>* > mapGPs;

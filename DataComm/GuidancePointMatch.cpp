@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "GuidancePointMatch.h"
 #include "Exposure.h"
+#include "GEGeoCaculate.h"
 #include <sstream>
 #include <fstream>
 
@@ -23,7 +24,8 @@ GuidancePointMatch::GuidancePointMatch(void)
 	pGaussProj = 0;
 	dDistanceCriteria = 10.0;
 	dHeadingCriteria = 20.0;
-	header = "01-0A1";
+	//header = "01-0A1";
+	nCurrentAirLine = 1;
 }
 
 
@@ -58,9 +60,6 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
     GuidancePoint* pGP = 0;
 	int nPreLnIdx = 1; // used to check if GPs on one airline finish
 	int nLineIdx;
-	// the 2nd line of the file present the bounding box
-	// the bounding box should be stored 
-	unsigned int unFileLine = 0;
 
     std::ifstream infile(filePath);
     if(infile.fail() || infile.bad())
@@ -73,17 +72,6 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
         std::string line(cline);
 	    iss.clear();
 		iss.str(line);
-
-		/*if (2 == (++unFileLine))
-		{
-			pBoundingBox = new BoundingBox;
-			double dMinX, dMinY, dMaxX, dMaxY;
-			iss >> dMinX >> dMaxX >> dMinY >> dMaxY;
-			pBoundingBox->minPoint.lat = dMinX;
-			pBoundingBox->minPoint.lon = dMinY;
-			pBoundingBox->maxPoint.lat = dMaxX;
-			pBoundingBox->maxPoint.lon = dMaxY;
-		}*/
 
         if(std::string::npos != line.find("AIRPORT"))
         {
@@ -174,7 +162,6 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
         vtr.push_back(QPointF(dCoordY, dCoordX));
         drawObject::registerGuidancePoint(pGP);
 #else
-		//mapGPs.insert(std::make_pair(head, pGP));
 		pGP->pointHeader = head;
 		if(nLineIdx == nPreLnIdx)
 		{
@@ -199,10 +186,14 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 
 double GuidancePointMatch::getDistance(OGRPoint p1, OGRPoint p2)
 {
-	pGaussProj->getGussCoord(p1);
-	pGaussProj->getGussCoord(p2);
-	double dx = p1.getX()-p2.getX();
-	double dy = p1.getY()-p2.getY();
+	//pGaussProj->getGussCoord(p1);
+	//pGaussProj->getGussCoord(p2);
+	double dP1GaussX, dP1GaussY, dP2GaussX, dP2GaussY;
+	CGEGeoCaculate cal;
+	cal.BL2XY_Gauss(p1.getX(), p1.getY(), dP1GaussX, dP1GaussY);
+	cal.BL2XY_Gauss(p2.getX(), p2.getY(), dP2GaussX, dP2GaussY);
+	double dx = dP1GaussX - dP2GaussX;
+	double dy = dP2GaussX - dP2GaussY;
 	return sqrtf(dx*dx + dy*dy);
 }
 
@@ -282,7 +273,7 @@ int GuidancePointMatch::getOptimalGP(std::vector<GuidancePoint*>& vtrGPs, GPRMC 
 bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 {
 	OGRPoint _plane(plane.pos.lon, plane.pos.lat);
-	int nCurrentAirLine = getLineIndexFromHeader(header);
+	//int nCurrentAirLine = getLineIndexFromHeader(header);
 	
 	COORDINATE pStart;
 	COORDINATE pEnd;
@@ -304,6 +295,7 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 			double dTmpDistance = getDistance(_plane, gp);
 			if(dTmpDistance < dDistanceCriteria)
 			{
+				pGP->setAirLineMatchedStatus(true);
 				pGP->setDistanceMatchedStatus(true);
 				vtrRltPoint.push_back(pGP);
 			}
@@ -322,7 +314,6 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 				pStart.high = pGP->point.high;
 			}
 			++nIdxFlag;
-
 		}
 		// heading criteria
 		dAirLineHeading = CExposure::GetAngleFrom2Points(pEnd, pStart);
@@ -336,13 +327,14 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 
 		// posing criteria
 
-		// topology criteria
+		// topology criteria -- don't implement for now
 		int GPIdx = getOptimalGP(vtrRltPoint, plane);
 		GuidancePoint* pOptimalGP = vtrRltPoint.at(GPIdx);
 		tgrGP = *pOptimalGP;
-		//if ()
-		//{
-		//}
+		if (std::string::npos != tgrGP.pointHeader.find("B1"))
+		{
+			++nCurrentAirLine;
+		}
 
 		return true;
 	}
