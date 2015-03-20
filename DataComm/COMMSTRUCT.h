@@ -126,6 +126,7 @@ typedef struct _CURRENT_POINT
 	bool headingMatchFlag;
 	bool posingMatchFlag;
 	bool topologyMatchFlag;
+	bool airlineMatchFlag;
 
 }CURRENT_POINT;
 

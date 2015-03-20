@@ -21,7 +21,7 @@ public:
 	virtual void DataUpdate( char *pBuffer, int size );
 public:
 	///根据最新的位置信息，获取当前的航迹点
-	void MatchCurrentAirLinePT(const COORDINATE position);
+	void MatchCurrentAirLinePT(const GPRMC position);
 public:
 	UINT DPThdImp(LPVOID pParam);
 	 /** 开启监听线程  

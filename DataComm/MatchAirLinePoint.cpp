@@ -52,11 +52,15 @@ UINT CMatchAirLinePoint::DPThdImp( LPVOID pParam )
 					COMM_MESSAGE *commMsg = (COMM_MESSAGE* )pstrMsg->c_str();
 					if(commMsg->msgtype == MSG_GPGGA)///位置信息
 					{
-						MatchCurrentAirLinePT(commMsg->body.position.pos);
+						//MatchCurrentAirLinePT(commMsg->body.position.pos);
 					}
 					else if( commMsg->msgtype == MSG_GPVTG)///速度航向信息
 					{
 
+					}
+					if(commMsg->msgtype == MSG_GPRMC)///位置信息
+					{
+						MatchCurrentAirLinePT(commMsg->body.position_info);
 					}
 				}
 			}
@@ -93,7 +97,7 @@ bool CMatchAirLinePoint::OpenMatchProcessThread()
     return true;  
 }  
 
-void CMatchAirLinePoint::MatchCurrentAirLinePT(const COORDINATE position)
+void CMatchAirLinePoint::MatchCurrentAirLinePT(const GPRMC position)
 {
 	//获取航迹点信息
 //	std::list<GuidancePoint*>& lsGPs;

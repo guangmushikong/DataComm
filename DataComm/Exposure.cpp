@@ -19,19 +19,21 @@ CExposure::CExposure(void)
 	m_hListenThread = INVALID_HANDLE_VALUE;
 	OpenListenThread();
 	m_sleepmsec = 0;
-
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 
+	CSystemParam::GetExposurParam( m_expParam );
 
+
+////////TEST
 	COORDINATE ptend,ptstart;
-	ptend.lat = 39.972390*PI/180;
-	ptend.lon = 116.397689*PI/180;
+	ptend.lat = 39.959539;
+	ptend.lon = 116.475878;
 	ptend.high = 200;
-	ptstart.lat = 39.972798*PI/180;
-	ptstart.lon = 116.398530*PI/180;
+	ptstart.lat = 39.960169;
+	ptstart.lon = 116.476179;
 	ptstart.high = 79;
 	double dis = GetDistanFrom2Points(ptend,ptstart);
-	double an = GetAngleFrom2Points(ptend,ptstart);
+	double an  = GetAngleFrom2Points(ptend,ptstart);
 
 	DWORD my1 = GetTickCount();
 	Sleep(100);
@@ -110,12 +112,16 @@ UINT CExposure::DPThdImp( LPVOID pParam )
 					COMM_MESSAGE *commMsg = (COMM_MESSAGE* )pstrMsg->c_str();
 					if(commMsg->msgtype == MSG_GPRMC)
 					{
-						IsNeedExposure(commMsg->body.position);
+					//	IsNeedExposure(commMsg->body.position);
 					}
 					else if( commMsg->msgtype == MSG_GPVTG) 
 					{
 						m_lastVel = commMsg->body.velocity.vel;
 						m_lastAZ  = commMsg->body.velocity.az;
+					}
+					else if(commMsg->msgtype == MSG_GPRMC)///位置信息
+					{
+						IsNeedExposure(commMsg->body.position_info);
 					}
 				}
 			}
@@ -152,49 +158,73 @@ bool CExposure::OpenDataProcessThread()
     return true;  
 }  
 
-bool CExposure::IsNeedExposure(GPGGA pt)
+bool CExposure::IsNeedExposure(GPRMC pt)
 {
 //	SetEvent(m_hEvtExposure);
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 	CURRENT_POINT currentPT;
 	m_pGlobalAirLine->GetCurrentPiont( currentPT );
-	m_targetPT = currentPT;
+	if( m_lastTargetPT.lineIndex == currentPT.lineIndex && m_lastTargetPT.pintIndex == currentPT.pintIndex && m_lastTargetPT.status == true )
+	{
+		return false;
+	}
+	m_lastTargetPT = currentPT;
+
+	if( !currentPT.distanceMatchFlag || !currentPT.headingMatchFlag || !currentPT.airlineMatchFlag )
+	{
+		return false;
+	}
 
 	COORDINATE outPT;
-	GetProjectionPt(currentPT.airline_az, currentPT.position, m_lastAZ, pt.pos, outPT);
-	double angle = GetAngleFrom2Points(outPT, pt.pos);
+	GetProjectionPt(currentPT.airline_az, currentPT.position, pt.az, pt.pos, outPT);
+	///夹角
+	double angle  = GetAngleFrom2Points(outPT, pt.pos);
+	///获取拍摄点在飞机飞行航线上的投影与。
+	double distan = GetDistanFrom2Points(pt.pos, outPT);
+	if(m_expParam.distan < distan || m_expParam.angle < abs(angle - m_lastAZ) )
+	{
+		return false;
+	}
 
-	//std::cout << "\r\nIsNeedExposure:over \r\n" ; 
-	if( abs(angle - m_lastAZ ) > 90 )
+	double nextSecDis = pt.vel / m_frequency ;  ///下一个位置点上报时飞行距离
+	double delayDis   = pt.vel * m_delay /1000;///相机延迟时间，飞行距离
+	if( distan > ( nextSecDis + delayDis ) )
 	{
 		return false;
 	}
 	else
 	{
-		double distan = GetDistanFrom2Points(pt.pos, outPT);
-		double nextSecDis = m_lastVel / m_frequency ;  ///下一个位置点上报时飞行距离
-		double delayDis   =  m_lastVel * m_delay /1000;///相机延迟时间，飞行距离
-		if( distan > ( nextSecDis + delayDis ) )
+		double scale = (distan - delayDis)/ nextSecDis / m_frequency ;///延迟这些秒为最近距离，开始拍照
+		if(scale < 0 )
 		{
-			return false;
+			scale = 0;
 		}
-		else
-		{
-			double scale = (distan - delayDis)/ nextSecDis / m_frequency ;///延迟这些秒为最近距离，开始拍照
-			if(scale < 0 )
-			{
-				scale = 0;
-			}
-			m_sleepmsec = scale;
-			SetEvent(m_hEvtExposure);
-		}
+		m_sleepmsec = scale;
+		SetEvent(m_hEvtExposure);
+
+		m_lastTargetPT.status = true;
 	}
 	return true;
 }
-	
+
 ///az_A:航线方向 az_B:飞行方向斜率
 ///ptA:目标点坐标 ptB当前点坐标
 ///out_pt目标点在飞行路线上的投影坐标
+void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt )
+{
+	double kA = tan( az_A );
+	if (kA == 0) //垂线斜率不存在情况  
+	{  
+		out_pt.lon = ptA.lon;  
+		out_pt.lat = ptB.lat;  
+	}  
+	else  
+	{  
+		out_pt.lon = (double)((kA * ptA.lon + ptB.lon / kA + ptB.lat - ptA.lat) / (1 / kA + kA));  
+		out_pt.lat = (double)(-1 / kA * (out_pt.lon - ptB.lon) + ptB.lat);  
+	}  
+}
+/*
 void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt )
 {
 	double kA = tan( az_A );
@@ -230,7 +260,7 @@ void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDI
 	out_pt.lat = y0;
 	out_pt.lon = x0;
 }
-
+*/
 void CExposure::GetNextStepPt( COORDINATE ptA, double vl, double az, double freq, COORDINATE &cross )
 {
 }
@@ -277,6 +307,14 @@ double CExposure::GetAngleFrom2Points(COORDINATE ptend, COORDINATE ptstar)
 
 double CExposure::GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart)
 {
+	double s_X, s_Y, e_X, e_Y;
+	m_GEGeoCaculate.BL2XY_Gauss(ptend.lon, ptend.lat, e_X, e_Y);
+	m_GEGeoCaculate.BL2XY_Gauss(ptstart.lon, ptstart.lat, s_X, s_Y);
+
+	double dx = e_X - s_X;
+	double dy = e_Y - s_Y;
+	return sqrtf(dx * dx + dy * dy);
+	/*
 	double   n = 0.0, fai = 0.0, tmp = 0.0, e2 = 0.0, f1 = 0.0;
 	double   sinf = 0.0;
 	double   geod[3];
@@ -308,6 +346,7 @@ double CExposure::GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart)
 	Err[1] = (float) (dis * (ptstart.lon - geod[1]));
 
 	return sqrt(Err[0]*Err[0] + Err[1]*Err[1] );
+	*/
 }
 
 bool CExposure::OpenListenThread()  
@@ -353,9 +392,9 @@ UINT WINAPI CExposure::ListenThread( void* pParam )
 			{
 				ResetEvent(pSerialPort->m_hEvtExposure);
 				Sleep(pSerialPort->m_sleepmsec);
-				unsigned char flag[8];
-				memcpy(flag, "1      6", 8);
-				pSerialPort->m_ExposurePort.WriteData(flag, 8);
+				unsigned char flag[16];
+				memcpy(flag, "1              6", 16);
+				pSerialPort->m_ExposurePort.WriteData(flag, 16);
 				pSerialPort->m_pGlobalAirLine->SetPointStatus(pSerialPort->m_targetPT.lineIndex, pSerialPort->m_targetPT.pintIndex,true);
 			}
 		}

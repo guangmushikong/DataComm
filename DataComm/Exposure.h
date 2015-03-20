@@ -8,6 +8,8 @@
 #include "SerialPort.h"
 #include "GlobalAirLine.h"
 #include <math.h>
+#include "GaussProjection.h"
+#include "GEGeoCaculate.h"
 
 //数学常数pei
 #define  PI				3.1415926535898
@@ -39,7 +41,7 @@ private:
 	///获取两点距离
 	double GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart);
 
-	bool IsNeedExposure(GPGGA pt);
+	bool IsNeedExposure(GPRMC pt);
 public:
 	UINT DPThdImp(LPVOID pParam);
 	 /** 开启监听线程  
@@ -95,6 +97,8 @@ private:
 	//最新的目标点
 	CURRENT_POINT m_targetPT;
 
+	CURRENT_POINT m_lastTargetPT;
+
 	EXPOSURE_PARAM m_expParam;
 
 	///频率
@@ -117,5 +121,9 @@ private:
 
 	///休息毫秒数
 	DWORD m_sleepmsec;
+
+	CSystemParam  m_syfParam;
+
+	CGEGeoCaculate m_GEGeoCaculate;
 };
 
