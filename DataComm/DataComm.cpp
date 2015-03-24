@@ -8,6 +8,7 @@
 #include "Exposure.h"
 #include "SystemParam.h"
 #include "MatchAirLinePoint.h"
+#include "SqliteManger.h"
 
 using namespace std;
 
@@ -35,6 +36,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	///初始化系统参数，获取航线
 	CSystemParam  param;
 	param.IniSysParam();
+
+	CSqliteManger::GetInstance()->InitDatabase();
    
 	///曝光处理对象
 	CExposure exposure;

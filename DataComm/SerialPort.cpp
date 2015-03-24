@@ -21,6 +21,8 @@
 #include "SerialPort.h"  
 #include <process.h>  
 #include <iostream>  
+#include "LogFile.h"
+#include "SqliteManger.h"
  
 /** 线程退出标志 */   
 bool CSerialPort::s_bExit = false;  
@@ -35,6 +37,7 @@ CSerialPort::CSerialPort(void)
  
     InitializeCriticalSection(&m_csCommunicationSync);  
 	m_iBufferLen = 0;
+	m_high      = 0.0;
  
 }  
  
@@ -269,14 +272,27 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
 		DWORD len;
 		if(pSerialPort->ReadChar((char*)cRecved,len) == TRUE)  
         {  
-            std::cout << cRecved ; 
+            //std::cout << cRecved ; 
 			COMM_MESSAGE Msg;
 			memset(pSerialPort->m_cRecved, 0, 1024);
 			int iBinLen = 0;
 			pSerialPort->DataPackage(cRecved, len, pSerialPort->m_cRecved, iBinLen);
 			if( iBinLen > 0)
 			{
+				//pSerialPort->FormatTrans(cRecved, &Msg);
 			    pSerialPort->FormatTrans(pSerialPort->m_cRecved, &Msg);
+				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
+				if( Msg.msgtype == MSG_GPRMC)
+				{
+					Msg.body.position_info.pos.high = pSerialPort->m_high;
+					string log = "接收到最简位置数据GPRMC：";
+			        char cLOG[80];
+					sprintf(cLOG,"经度%f 纬度%f 高程%f 速度%f 方位角%f", Msg.body.position_info.pos.lon,Msg.body.position_info.pos.lat,Msg.body.position_info.pos.high,
+						Msg.body.position_info.vel,Msg.body.position_info.az);
+					log += cLOG;
+					CLogFile::Instance().WriteLog(log.c_str(), log.length());
+					CSqliteManger::GetInstance()->InsertPosition(Msg.body.position_info);
+				}
 				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
 			}
 
@@ -405,6 +421,7 @@ int CSerialPort::FormatTrans(const string &data, COMM_MESSAGE *pMsg)
 	{
 		pMsg->msgtype = MSG_GPGGA;
 		m_dataProcess.UnPackGPGGA(data, &pMsg->body.position);
+		m_high = pMsg->body.position.pos.high;
 		return 1;
 	}
 	else if (strncmp(pData, "$GPVTG", 6) == 0)

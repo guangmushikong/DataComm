@@ -131,7 +131,8 @@ void CDataProcess::UnPackGPVTG( const string &data, GPVTG *pMsg )
 		s_scale = i + 1;
 	}
 }
-//$GPRMC,161229.487,A,3723.2475,N,12158.3416,W,0.13,309.62,120598,,*10  
+//$GPRMC,161229.487,A,3928.0398,N,11633.1530,E,23.13,45,120598,,*10	
+
 void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
 {
 	if ( data == "" )

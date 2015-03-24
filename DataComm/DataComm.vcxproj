@@ -39,8 +39,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>F:\Win_32bit\gdal\Release\include;$(IncludePath)</IncludePath>
-    <LibraryPath>F:\Win_32bit\gdal\Release\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>F:\Win_32bit\gdal\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -55,7 +54,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>gdal_i.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sqlite3.lib;gdal_i.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -90,8 +90,11 @@
     <ClInclude Include="GuidancePointMatch.h" />
     <ClInclude Include="IDataUpdate.h" />
     <ClInclude Include="INotify.h" />
+    <ClInclude Include="LogFile.h" />
     <ClInclude Include="MatchAirLinePoint.h" />
     <ClInclude Include="SerialPort.h" />
+    <ClInclude Include="sqlite3.h" />
+    <ClInclude Include="SqliteManger.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="SystemParam.h" />
     <ClInclude Include="targetver.h" />
@@ -107,8 +110,10 @@
     <ClCompile Include="GEGeoCaculate.cpp" />
     <ClCompile Include="GlobalAirLine.cpp" />
     <ClCompile Include="GuidancePointMatch.cpp" />
+    <ClCompile Include="LogFile.cpp" />
     <ClCompile Include="MatchAirLinePoint.cpp" />
     <ClCompile Include="SerialPort.cpp" />
+    <ClCompile Include="SqliteManger.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

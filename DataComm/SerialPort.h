@@ -216,6 +216,8 @@ private:
 	int		m_iBufferLen;
 	
 	int		m_iBinLen;
+public:
+	double  m_high;
 };  
  
 #endif //SERIALPORT_H_ 

@@ -3,6 +3,11 @@
 #include <process.h> 
 #include "dos.h"
 #include <windows.h>
+#include "LogFile.h"
+#include <sstream>
+
+using namespace std;
+using std::stringstream;
 
 /** 线程退出标志 */   
 bool CExposure::s_bExit = false; 
@@ -15,22 +20,25 @@ CExposure::CExposure(void)
 	m_hDataProcessThread = INVALID_HANDLE_VALUE;
 
 	m_hEvtExposure = CreateEvent(NULL, TRUE, FALSE, NULL);
-	m_ExposurePort.InitPort(3, 1200);
+
 	m_hListenThread = INVALID_HANDLE_VALUE;
 	OpenListenThread();
 	m_sleepmsec = 0;
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 
 	CSystemParam::GetExposurParam( m_expParam );
+	COMM_PARAM comp;
+	CSystemParam::GetCameraCommParam(comp);
+	m_ExposurePort.InitPort(comp.port, comp.baud);
 
 
 ////////TEST
-	COORDINATE ptend,ptstart;
-	ptend.lat = 39.959539;
-	ptend.lon = 116.475878;
+	COORDINATE ptend,ptstart; 
+	ptend.lat = 40.08157;
+	ptend.lon = 116.33788;
 	ptend.high = 200;
-	ptstart.lat = 39.960169;
-	ptstart.lon = 116.476179;
+	ptstart.lat = 40.0851;
+	ptstart.lon = 116.33788;
 	ptstart.high = 79;
 	double dis = GetDistanFrom2Points(ptend,ptstart);
 	double an  = GetAngleFrom2Points(ptend,ptstart);
@@ -110,7 +118,7 @@ UINT CExposure::DPThdImp( LPVOID pParam )
 				while (m_pContainer->GetData(pstrMsg))
 				{
 					COMM_MESSAGE *commMsg = (COMM_MESSAGE* )pstrMsg->c_str();
-					if(commMsg->msgtype == MSG_GPRMC)
+					if(commMsg->msgtype == MSG_GPGGA)
 					{
 					//	IsNeedExposure(commMsg->body.position);
 					}
@@ -164,6 +172,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 	CURRENT_POINT currentPT;
 	m_pGlobalAirLine->GetCurrentPiont( currentPT );
+	currentPT.status = false;
 	if( m_lastTargetPT.lineIndex == currentPT.lineIndex && m_lastTargetPT.pintIndex == currentPT.pintIndex && m_lastTargetPT.status == true )
 	{
 		return false;
@@ -181,20 +190,20 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	double angle  = GetAngleFrom2Points(outPT, pt.pos);
 	///获取拍摄点在飞机飞行航线上的投影与。
 	double distan = GetDistanFrom2Points(pt.pos, outPT);
-	if(m_expParam.distan < distan || m_expParam.angle < abs(angle - m_lastAZ) )
+	if(m_expParam.distan < distan )// || m_expParam.angle < abs(angle - m_lastAZ)
 	{
 		return false;
 	}
 
-	double nextSecDis = pt.vel / m_frequency ;  ///下一个位置点上报时飞行距离
-	double delayDis   = pt.vel * m_delay /1000;///相机延迟时间，飞行距离
+	double nextSecDis = pt.vel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
+	double delayDis   = pt.vel * m_expParam.delay /1000;///相机延迟时间，飞行距离
 	if( distan > ( nextSecDis + delayDis ) )
 	{
 		return false;
 	}
 	else
 	{
-		double scale = (distan - delayDis)/ nextSecDis / m_frequency ;///延迟这些秒为最近距离，开始拍照
+		double scale = (distan - delayDis)/ nextSecDis / m_expParam.frequency ;///延迟这些秒为最近距离，开始拍照
 		if(scale < 0 )
 		{
 			scale = 0;
@@ -203,6 +212,15 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 		SetEvent(m_hEvtExposure);
 
 		m_lastTargetPT.status = true;
+
+
+		string log = "完成曝光.曝光点信息：";
+		char cLOG[80];
+		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f %s 曝光延迟%f", currentPT.lineIndex,currentPT.pintIndex,
+			                   currentPT.position.lon,currentPT.position.lat,currentPT.position.high, m_sleepmsec );
+		log += cLOG;
+		CLogFile::Instance().WriteLog(log.c_str(), log.length());
+
 	}
 	return true;
 }
@@ -212,7 +230,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 ///out_pt目标点在飞行路线上的投影坐标
 void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt )
 {
-	double kA = tan( az_A );
+	double kA = tan( az_B * PI / 180 );
 	if (kA == 0) //垂线斜率不存在情况  
 	{  
 		out_pt.lon = ptA.lon;  

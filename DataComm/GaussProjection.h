@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ogrsf_frmts.h>
+#include "include\ogrsf_frmts.h"
 
 class GaussProjection
 {

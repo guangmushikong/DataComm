@@ -193,7 +193,7 @@ double GuidancePointMatch::getDistance(OGRPoint p1, OGRPoint p2)
 	cal.BL2XY_Gauss(p1.getX(), p1.getY(), dP1GaussX, dP1GaussY);
 	cal.BL2XY_Gauss(p2.getX(), p2.getY(), dP2GaussX, dP2GaussY);
 	double dx = dP1GaussX - dP2GaussX;
-	double dy = dP2GaussX - dP2GaussY;
+	double dy = dP2GaussY - dP2GaussY;
 	return sqrtf(dx*dx + dy*dy);
 }
 
@@ -248,14 +248,14 @@ void GuidancePointMatch::releaseBuffer()
 
 int GuidancePointMatch::getOptimalGP(std::vector<GuidancePoint*>& vtrGPs, GPRMC plane)
 {
-	int index;
+	int index = 0;
 	double dDistance;
 	for (int it = 0; it < vtrGPs.size(); ++it)
 	{
 		const GuidancePoint* pGP = vtrGPs.at(it);
 		double dX = pGP->point.lat - plane.pos.lat;
 		double dY = pGP->point.lon - plane.pos.lon;
-		double dTmpDistance = dX*dX + dY*dY;
+		double dTmpDistance = sqrt(dX*dX + dY*dY);
 		if (it == 0)
 		{
 			dDistance = dTmpDistance;
@@ -271,7 +271,7 @@ int GuidancePointMatch::getOptimalGP(std::vector<GuidancePoint*>& vtrGPs, GPRMC 
 }
 
 bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
-{
+{                                                                                                                                                                                      
 	OGRPoint _plane(plane.pos.lon, plane.pos.lat);
 	//int nCurrentAirLine = getLineIndexFromHeader(header);
 	
@@ -328,7 +328,15 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 		// posing criteria
 
 		// topology criteria -- don't implement for now
+		if (vtrRltPoint.size()== 0)
+		{
+			return false;
+		}
 		int GPIdx = getOptimalGP(vtrRltPoint, plane);
+		if(GPIdx < 0)
+		{
+			return false;
+		}
 		GuidancePoint* pOptimalGP = vtrRltPoint.at(GPIdx);
 		tgrGP = *pOptimalGP;
 		if (std::string::npos != tgrGP.pointHeader.find("B1"))
