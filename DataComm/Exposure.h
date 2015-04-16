@@ -10,6 +10,7 @@
 #include <math.h>
 #include "GaussProjection.h"
 #include "GEGeoCaculate.h"
+#include "UDPServer.h"
 
 //数学常数pei
 #define  PI				3.1415926535898
@@ -42,6 +43,11 @@ private:
 	double GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart);
 
 	bool IsNeedExposure(GPRMC pt);
+
+	///从方位角获取水平角
+	double GetHoriFromAZ(double az_A );
+
+	void SendToUDP(GPRMC pt, char status);
 public:
 	UINT DPThdImp(LPVOID pParam);
 	 /** 开启监听线程  
@@ -84,7 +90,6 @@ public:
 
 	/** 线程退出标志变量 */   
     static bool s_bExit; 
-
 private:
 	CDataContainer<string*> *m_pContainer;
 
@@ -106,6 +111,11 @@ private:
 
 	//曝光延迟
 	double m_delay;
+
+	//UDP对象
+	CUDPServer m_udpServer; 
+
+	CDataProcess m_dataProcess;
 private:
 	CGlobalAirLine *m_pGlobalAirLine;
 

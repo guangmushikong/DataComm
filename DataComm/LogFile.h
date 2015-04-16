@@ -27,7 +27,7 @@ public:
 	virtual ~CLogFile();
 public:
 	///单例
-	static CLogFile& Instance()	{ return instance;};
+	static CLogFile * GetInstance();
 	/*!
 	* @brief:		获得日志文件名称函数
 	* @description:	获取日志文件名称
@@ -80,6 +80,7 @@ private:
 	* @return:		N/A
 	*/
 	void	WriteToLog(const char* szContent,int nStrlen=0);
+public:
 	/*!
 	* @brief:		获取时间
 	* @description:	获取写日志的当前时间
@@ -102,6 +103,6 @@ private:
 	//获得临界区变量用以同步日志文件的读写					
 	CRITICAL_SECTION  m_LogSec;	
 
-	static CLogFile instance;
+	static CLogFile *m_LogFile;
 };
 

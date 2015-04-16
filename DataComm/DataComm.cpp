@@ -9,14 +9,23 @@
 #include "SystemParam.h"
 #include "MatchAirLinePoint.h"
 #include "SqliteManger.h"
+#include "LogFile.h"
 
 using namespace std;
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	///初始化系统参数，获取航线
+	CSystemParam  param;
+	param.IniSysParam();
+
+	COMM_PARAM commParam;
+	param.GetGpsCommParam(commParam);
+	CLogFile *pFile;
+	pFile->GetInstance()->WriteLog("系统启动！", 10);
     CSerialPort serialPort;  
  
-    if (!serialPort.InitPort(2))  
+	if (!serialPort.InitPort(commParam.port, commParam.baud))  
     {  
         std::cout << "initPort fail !" << std::endl;  
     }  
@@ -33,9 +42,6 @@ int _tmain(int argc, _TCHAR* argv[])
     {  
         std::cout << "OpenListenThread success !" << std::endl;  
     }  
-	///初始化系统参数，获取航线
-	CSystemParam  param;
-	param.IniSysParam();
 
 	CSqliteManger::GetInstance()->InitDatabase();
    

@@ -78,6 +78,9 @@
     <ClInclude Include="LogFile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="UDPServer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -126,6 +129,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="LogFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <tchar.h>
+#include <WINSOCK2.h>
 #include <windows.h> 
 #include <string>
 #include <list>
@@ -16,6 +17,7 @@
 #include <map>
 #include <algorithm>
 #include <math.h>
+#include <iostream>
 
 using namespace std;
 

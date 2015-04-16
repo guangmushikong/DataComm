@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "SqliteManger.h"
+#include "LogFile.h"
 
 CSqliteManger * CSqliteManger::m_SqliteMange = NULL;
 
@@ -82,8 +83,12 @@ bool CSqliteManger::InsertPosition(GPRMC posInfo)
 {
 	string strInsPos = "INSERT INTO position( \
 					        DataTime, longitude, latitude, hight, velocity, azimuth )  \
-						VALUES ( ";
-	strInsPos += "'2001-03-34 13:21:30'";
+						VALUES ( '";
+	char strTM[80];
+	CLogFile *pFile;
+	pFile->GetInstance()->GetTime(strTM);
+	strInsPos += strTM;
+	strInsPos += "'";
 	char cPos[80];
 	sprintf(cPos,",%f, %f, %f, %f ,%f );", posInfo.pos.lon,posInfo.pos.lat,posInfo.pos.high,
 						                posInfo.vel, posInfo.az);

@@ -8,6 +8,7 @@ EXPOSURE_PARAM    CSystemParam::m_exposureParam;
 COMM_PARAM CSystemParam::m_cameraCommParam;
 COMM_PARAM CSystemParam::m_gpsCommParam;
 GuidancePointMatch CSystemParam::GP_Match;
+UDP_PARAM CSystemParam::m_udpParam;
 
 CSystemParam::CSystemParam(void)
 {
@@ -41,6 +42,8 @@ void CSystemParam::IniSysParam()
 		m_exposureParam.angle= atof( buf );
 	}
     m_exposureParam.trigger =  GetPrivateProfileIntA("EXPOSURE", "TRIGGER",  0, CONFIGFILENAME);
+	m_exposureParam.frequency =  GetPrivateProfileIntA("EXPOSURE", "FREQUENCY",  0, CONFIGFILENAME);
+	m_exposureParam.rate =  GetPrivateProfileIntA("EXPOSURE", "RATE",  0, CONFIGFILENAME)/100;
 
 	///获取相机串口参数
 	m_cameraCommParam.port =  GetPrivateProfileIntA("CAMERA", "COMID", 0, CONFIGFILENAME);
@@ -50,10 +53,14 @@ void CSystemParam::IniSysParam()
 	m_gpsCommParam.port =  GetPrivateProfileIntA("GPS", "COMID", 0, CONFIGFILENAME);
 	m_gpsCommParam.baud =  GetPrivateProfileIntA("GPS", "BAUD",  0, CONFIGFILENAME);
 
+	///获取UDP参数
+	m_udpParam.port = GetPrivateProfileIntA("UDP", "PORT", 0, CONFIGFILENAME);
+
 	///获取航迹点信息
 	GP_Match.readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
 	GP_Match.setDistanceCriteria(m_exposureParam.distan);
 	GP_Match.setHeadingCriteria(m_exposureParam.angle);
+	GP_Match.setExposureRate( m_exposureParam.rate);
 }
 
 void CSystemParam::GetExposurParam(EXPOSURE_PARAM &param)
@@ -71,6 +78,10 @@ void CSystemParam::GetGpsCommParam(COMM_PARAM &param)
 	param = m_gpsCommParam;
 }
 
+void CSystemParam::GetUDPParam(UDP_PARAM &param)
+{
+	param = m_udpParam;
+}
 //void CSystemParam::getNextGPHead(const std::string& _head, std::string& nextHead)
 //{
 //	nextHead = _head;

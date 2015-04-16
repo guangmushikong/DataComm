@@ -19,10 +19,10 @@
 #ifndef SERIALPORT_H_  
 #define SERIALPORT_H_  
  
-#include <Windows.h>  
 #include "INotify.h"
 #include "stdafx.h"
 #include "DataProcess.h"
+#include "LogFile.h"
 
 #define MAX_BUFFER_SIZE		1024
 using namespace std;
@@ -192,7 +192,7 @@ protected:
 	OVERLAPPED _WaitOverlapped;	
  
 private:  
- 
+ 	CLogFile *m_pFile;
 	    /** 线程句柄 */   
     HANDLE    m_hListenThread;  
     /** 线程退出标志变量 */   

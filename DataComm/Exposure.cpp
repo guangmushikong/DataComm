@@ -5,6 +5,7 @@
 #include <windows.h>
 #include "LogFile.h"
 #include <sstream>
+#include "SqliteManger.h"
 
 using namespace std;
 using std::stringstream;
@@ -31,6 +32,9 @@ CExposure::CExposure(void)
 	CSystemParam::GetCameraCommParam(comp);
 	m_ExposurePort.InitPort(comp.port, comp.baud);
 
+	UDP_PARAM udpParam;
+	CSystemParam::GetUDPParam(udpParam);
+	m_udpServer.Init(udpParam.port);
 
 ////////TEST
 	COORDINATE ptend,ptstart; 
@@ -164,7 +168,15 @@ bool CExposure::OpenDataProcessThread()
         return false;  
     }   
     return true;  
-}  
+}
+
+void CExposure::SendToUDP(GPRMC pt, char status)
+{
+	string msg;
+	pt.status = status;
+	m_dataProcess.PackGPRMC(&pt, msg);
+	m_udpServer.SendData(msg.c_str(),msg.size());
+}
 
 bool CExposure::IsNeedExposure(GPRMC pt)
 {
@@ -175,12 +187,14 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	currentPT.status = false;
 	if( m_lastTargetPT.lineIndex == currentPT.lineIndex && m_lastTargetPT.pintIndex == currentPT.pintIndex && m_lastTargetPT.status == true )
 	{
+		SendToUDP(pt,'0');
 		return false;
 	}
 	m_lastTargetPT = currentPT;
 
-	if( !currentPT.distanceMatchFlag || !currentPT.headingMatchFlag || !currentPT.airlineMatchFlag )
+	if( !currentPT.distanceMatchFlag  || !currentPT.airlineMatchFlag )
 	{
+		SendToUDP(pt,'0');
 		return false;
 	}
 
@@ -192,17 +206,28 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	double distan = GetDistanFrom2Points(pt.pos, outPT);
 	if(m_expParam.distan < distan )// || m_expParam.angle < abs(angle - m_lastAZ)
 	{
+		SendToUDP(pt,'0');
 		return false;
 	}
 
-	double nextSecDis = pt.vel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
-	double delayDis   = pt.vel * m_expParam.delay /1000;///相机延迟时间，飞行距离
+	double dvel = pt.vel * 1000/ 3600;///速度，m/s
+	CLogFile *pFile;
+	double nextSecDis = dvel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
+	double delayDis   = dvel * m_expParam.delay /1000;///相机延迟时间，飞行距离
 	if( distan > ( nextSecDis + delayDis ) )
 	{
+		string log = "曝光失败.曝光点信息：";
+		char cLOG[180];
+		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f %s 曝光延迟%f", currentPT.lineIndex,currentPT.pintIndex,
+			                   currentPT.position.lon,currentPT.position.lat, m_sleepmsec );
+		log += cLOG;
+		pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+		SendToUDP(pt,'0');
 		return false;
 	}
 	else
 	{
+		m_udpServer.SendData((char*)(&currentPT), sizeof(CURRENT_POINT));
 		double scale = (distan - delayDis)/ nextSecDis / m_expParam.frequency ;///延迟这些秒为最近距离，开始拍照
 		if(scale < 0 )
 		{
@@ -215,11 +240,16 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 
 
 		string log = "完成曝光.曝光点信息：";
-		char cLOG[80];
+		char cLOG[180];
 		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f %s 曝光延迟%f", currentPT.lineIndex,currentPT.pintIndex,
-			                   currentPT.position.lon,currentPT.position.lat,currentPT.position.high, m_sleepmsec );
+			                   currentPT.position.lon,currentPT.position.lat, m_sleepmsec );
 		log += cLOG;
-		CLogFile::Instance().WriteLog(log.c_str(), log.length());
+
+		
+	    pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+		SendToUDP(pt,'0');
+		//CLogFile::Instance().WriteLog(log.c_str(), log.length());
+	//	CSqliteManger::GetInstance()->InsertExposure(pt,currentPT,delayDis,"'完成曝光'");
 
 	}
 	return true;
@@ -230,7 +260,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 ///out_pt目标点在飞行路线上的投影坐标
 void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt )
 {
-	double kA = tan( az_B * PI / 180 );
+	double kA = tan( GetHoriFromAZ(az_B) * PI / 180 );
 	if (kA == 0) //垂线斜率不存在情况  
 	{  
 		out_pt.lon = ptA.lon;  
@@ -241,6 +271,18 @@ void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDI
 		out_pt.lon = (double)((kA * ptA.lon + ptB.lon / kA + ptB.lat - ptA.lat) / (1 / kA + kA));  
 		out_pt.lat = (double)(-1 / kA * (out_pt.lon - ptB.lon) + ptB.lat);  
 	}  
+}
+double CExposure::GetHoriFromAZ(double az_A )
+{
+   if( az_A >= 90 && az_A <= 180)
+   {
+	   return 270 + (180 - az_A );
+   }
+   else
+   {
+	   double tmp = 90 - az_A;
+	   return tmp>0?tmp:(tmp+360);
+   }
 }
 /*
 void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt )

@@ -2,6 +2,7 @@
 
 #include "COMMSTRUCT.h"
 
+
 class CDataProcess
 {
 public:
@@ -14,5 +15,8 @@ public:
 
 	///最简定位信息
 	void UnPackGPRMC( const string &data, GPRMC *pMsg );
+
+    ///打包位置数据发送给界面
+	void PackGPRMC( const GPRMC *pMsg, string &data);
 };
 

@@ -286,12 +286,14 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
 				{
 					Msg.body.position_info.pos.high = pSerialPort->m_high;
 					string log = "接收到最简位置数据GPRMC：";
-			        char cLOG[80];
+			        char cLOG[180];
 					sprintf(cLOG,"经度%f 纬度%f 高程%f 速度%f 方位角%f", Msg.body.position_info.pos.lon,Msg.body.position_info.pos.lat,Msg.body.position_info.pos.high,
 						Msg.body.position_info.vel,Msg.body.position_info.az);
 					log += cLOG;
-					CLogFile::Instance().WriteLog(log.c_str(), log.length());
-					CSqliteManger::GetInstance()->InsertPosition(Msg.body.position_info);
+					//	CLogFile *pFile;
+	                //   pFile->GetInstance()->WriteLog("系统启动！", 10);
+					pSerialPort->m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+//					CSqliteManger::GetInstance()->InsertPosition(Msg.body.position_info);
 				}
 				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
 			}

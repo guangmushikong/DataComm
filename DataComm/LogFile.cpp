@@ -3,8 +3,8 @@
 #include <time.h>
 #include <iostream>
 
-CLogFile  CLogFile::instance;
 
+CLogFile * CLogFile::m_LogFile = NULL;
 CLogFile::CLogFile(void):m_bOpen(FALSE)
 {
 	//初始化同步变量
@@ -20,6 +20,15 @@ CLogFile::~CLogFile(void)
 //	DeleteCriticalSection(&m_LogSec);
 }
 
+CLogFile * CLogFile::GetInstance()
+{
+	if( m_LogFile == NULL )
+	{
+		m_LogFile = new CLogFile();
+	}
+
+	return m_LogFile;
+}
 //打开文件
 BOOL CLogFile::Open()
 {

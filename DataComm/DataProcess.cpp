@@ -4,6 +4,15 @@
 
 CDataProcess::CDataProcess(void)
 {
+	GPRMC pMsg;
+	pMsg.az = 23.34;
+	pMsg.vel = 123.432;
+	pMsg.status = '1';
+	pMsg.pos.high = 123.45;
+	pMsg.pos.lat = 41.1234567890;
+	pMsg.pos.lon = 121.1234567890;
+	string data;
+	PackGPRMC(&pMsg, data);
 }
 
 
@@ -156,7 +165,15 @@ void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
 			continue;
 		}
 
-		if( num == 3)
+		if( num == 2)
+		{
+			e_scale = i;
+			///GPS时间
+			memset(cValue, 0, 16);
+	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
+			pMsg->time = atof(cValue);
+		}
+		else if( num == 3)
 		{
 	        ///定位状态
 	        memcpy(&pMsg->status, data.data() + s_scale, 1);
@@ -216,4 +233,35 @@ void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
 		}
 		s_scale = i + 1;
 	}
+}
+
+void CDataProcess::PackGPRMC( const GPRMC *pMsg, string &data)
+{
+	char tmp[20];
+	sprintf(tmp, "tm:%6f", pMsg->time);
+	data = tmp;
+
+	memset(tmp, 0, 20);
+	sprintf(tmp, ",lon:%6f", pMsg->pos.lon);
+	data += tmp;
+
+	memset(tmp, 0, 20);
+	sprintf(tmp, ",lat:%6f", pMsg->pos.lat);
+	data += tmp;
+
+	memset(tmp, 0, 20);
+	sprintf(tmp, ",hgt:%f", pMsg->pos.high);
+	data += tmp;
+
+	memset(tmp, 0, 20);
+	sprintf(tmp, ",vel:%f", pMsg->vel);
+	data += tmp;
+
+	memset(tmp, 0, 20);
+	sprintf(tmp, ",az:%f", pMsg->az);
+	data += tmp;
+
+	data += ",status:";
+	data += pMsg->status;
+	data += '\0';
 }

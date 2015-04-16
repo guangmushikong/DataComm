@@ -58,6 +58,10 @@ typedef struct _GPVTG
 
 typedef struct _GPRMC
 {
+	///GPSÊ±¼ä
+	double    time;
+
+	///×´Ì¬
 	char      status;
     
 	COORDINATE pos;

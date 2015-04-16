@@ -16,6 +16,12 @@ class GuidancePointMatch
 	private:
 		OGRPoint centerPoint;
 	};
+	class ExposureRate
+	{
+	public:
+		int totalPointNum;
+		int exposurePointNum;
+	};
 public:
 	GuidancePointMatch(void);
 	~GuidancePointMatch(void);
@@ -25,28 +31,36 @@ public:
 	bool getGaussCoord(OGRPoint& p);
 	void setDistanceCriteria(double _criteria);
 	void setHeadingCriteria(double _criteria);
+	void setExposureRate(double _criteria);
 
 	void testGetCenterPoint();
 	void testGetDistance();
 
 private:
+	int  getMatchedLine(const GPRMC& plane);
 	void registerGhtFile(std::string filePath);
 	double getDistance(OGRPoint p1, OGRPoint p2);
+	double getDistance(COORDINATE p1, COORDINATE p2);
+	double getRelaDistance(COORDINATE p1, COORDINATE p2, COORDINATE p);
 	int getLineIndexFromHeader(const std::string& header);
 	int getPointIndexFromHeader(const std::string& header);
 	void releaseBuffer();
 	void getCenterPoint();
 	int getOptimalGP(std::vector<GuidancePoint*>& vtrGPs, GPRMC plane);
 	bool bTopologyMatched(std::string currheader, std::string preheader);
+	void GetProjectionPt(COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt );
+	void initExposureRate();
 private:
 	double dDistanceCriteria;
 	double dHeadingCriteria;
+	double dExposureCriteria;
 	int nCurrentAirLine;
 	//std::string strPointIndex; // A1/A2/B1/B2/number
 	//std::string header;
 	OGRPoint centerPoint; // used to set Gauss Projection param
 	GuidancePoint currentGP;
 	std::map<int, std::vector<GuidancePoint*>* > mapGPs;
+	std::map<int, ExposureRate> mapExposureLine;
 	GaussProjection* pGaussProj;
 };
 
