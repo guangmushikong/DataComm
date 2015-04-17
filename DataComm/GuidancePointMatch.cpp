@@ -24,6 +24,7 @@ GuidancePointMatch::GuidancePointMatch(void)
 	pGaussProj = 0;
 	dDistanceCriteria = 10.0;
 	dHeadingCriteria = 20.0;
+	dExposureCriteria = 0.8;
 	//header = "01-0A1";
 	nCurrentAirLine = 1;
 }
@@ -41,6 +42,11 @@ void GuidancePointMatch::setDistanceCriteria(double _criteria)
 void GuidancePointMatch::setHeadingCriteria(double _criteria)
 {
 	dHeadingCriteria = _criteria;
+}
+
+void GuidancePointMatch::setExposureRate(double _criteria)
+{
+	dExposureCriteria = _criteria;
 }
 
 void GuidancePointMatch::registerGhtFile(std::string filePath)
@@ -184,6 +190,13 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 #endif
 }
 
+double GuidancePointMatch::getDistance(COORDINATE p1, COORDINATE p2)
+{
+	double dx = p1.lon - p2.lon;
+	double dy = p1.lat - p2.lat;
+	return (dx*dx + dy*dy);
+}
+
 double GuidancePointMatch::getDistance(OGRPoint p1, OGRPoint p2)
 {
 	//pGaussProj->getGussCoord(p1);
@@ -270,16 +283,79 @@ int GuidancePointMatch::getOptimalGP(std::vector<GuidancePoint*>& vtrGPs, GPRMC 
 	return index;
 }
 
+// get the matched AirLine according to the plane position
+// only exam the current airline and the next airline
+int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
+{
+	double currLineDistance = .0;
+	int currentLineIdx = nCurrentAirLine;
+	double nextLineDistance = .0;
+	int nextLineIdx = (nCurrentAirLine+1);
+	COORDINATE currProP;
+	COORDINATE nextProP;
+
+	COORDINATE endP;
+	COORDINATE begP;
+
+	std::vector<GuidancePoint*>* currGPs = mapGPs.find(currentLineIdx)->second;
+	if (currGPs->size() > 2)
+	{
+		endP.lat = currGPs->at(1)->point.lat;
+		endP.lon = currGPs->at(1)->point.lon;
+		endP.high = currGPs->at(1)->point.high;
+		begP.lat = currGPs->at(0)->point.lat;
+		begP.lon = currGPs->at(0)->point.lon;
+		begP.high = currGPs->at(0)->point.high;
+	}
+	double currAngle = CExposure::GetAngleFrom2Points(endP, begP);
+	GetProjectionPt(plane.pos, currAngle, begP, currProP);
+	currLineDistance = getDistance(plane.pos, currProP);
+
+	std::vector<GuidancePoint*>* nextGPs = mapGPs.find(nextLineIdx)->second;
+	if (nextGPs->size() > 2)
+	{
+		endP.lat = nextGPs->at(1)->point.lat;
+		endP.lon = nextGPs->at(1)->point.lon;
+		endP.high = nextGPs->at(1)->point.high;
+		begP.lat = nextGPs->at(0)->point.lat;
+		begP.lon = nextGPs->at(0)->point.lon;
+		begP.high = nextGPs->at(0)->point.high;
+	}
+	double nextAngle = CExposure::GetAngleFrom2Points(endP, begP);
+	GetProjectionPt(plane.pos, nextAngle, begP, nextProP);
+	nextLineDistance = getDistance(plane.pos, nextProP);
+
+	return currLineDistance<nextLineDistance?currentLineIdx:nextLineIdx;
+}
+
 bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 {                                                                                                                                                                                      
 	OGRPoint _plane(plane.pos.lon, plane.pos.lat);
-	//int nCurrentAirLine = getLineIndexFromHeader(header);
-	
+
 	COORDINATE pStart;
 	COORDINATE pEnd;
 	double dAirLineHeading = .0;
 	int nIdxFlag = 0;
-	
+
+	int nMatchedLine = getMatchedLine(plane);
+	if (nMatchedLine != nCurrentAirLine)
+	{
+		if (nMatchedLine < 2)
+		{
+			return false;
+		}
+
+		ExposureRate rate = mapExposureLine.find(nMatchedLine-1)->second;
+		if (dExposureCriteria < rate.exposurePointNum/rate.totalPointNum)
+		{
+			nCurrentAirLine = nMatchedLine;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.find(nCurrentAirLine);
 	if(mapGPs.end() != it)
 	{
@@ -315,34 +391,36 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 			}
 			++nIdxFlag;
 		}
+
+		if (vtrRltPoint.size() <= 0)
+		{
+			return false;
+		}
+
 		// heading criteria
 		dAirLineHeading = CExposure::GetAngleFrom2Points(pEnd, pStart);
 		bool bHeadingMatched = (abs(dAirLineHeading-plane.az) < dHeadingCriteria);
 		for (std::vector<GuidancePoint*>::iterator it= vtrRltPoint.begin(); 
-			 it !=  vtrRltPoint.end(); ++it)
+			it !=  vtrRltPoint.end(); ++it)
 		{
-			GuidancePoint* pGP = *it;
-			pGP->setHeadingMatchedStatus(bHeadingMatched);
+			(*it)->setHeadingMatchedStatus(bHeadingMatched);
 		}
 
 		// posing criteria
 
 		// topology criteria -- don't implement for now
-		if (vtrRltPoint.size()== 0)
-		{
-			return false;
-		}
+
+		// get optimal GP
 		int GPIdx = getOptimalGP(vtrRltPoint, plane);
-		if(GPIdx < 0)
-		{
-			return false;
-		}
 		GuidancePoint* pOptimalGP = vtrRltPoint.at(GPIdx);
 		tgrGP = *pOptimalGP;
+
 		if (std::string::npos != tgrGP.pointHeader.find("B1"))
 		{
 			++nCurrentAirLine;
 		}
+
+		++(mapExposureLine.find(nCurrentAirLine)->second.exposurePointNum);
 
 		return true;
 	}
@@ -350,6 +428,30 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	{
 		return false;
 	}
+}
+
+double GuidancePointMatch::getRelaDistance(COORDINATE p1, COORDINATE p2, COORDINATE p)
+{
+	double dx, dy;
+	double dsP1P2, dsP2P3, dsP1P3;
+	double cosA, sinA;
+
+	dx = p1.lon - p2.lon;
+	dy = p1.lat - p2.lat;
+	dsP1P2 = dx*dx + dy*dy;
+
+	dx = p2.lon - p.lon;
+	dy = p2.lat - p.lat;
+	dsP2P3 = dx*dx + dy*dy;
+
+	dx = p1.lon - p.lon;
+	dy = p1.lat - p.lat;
+	dsP1P3 = dx*dx + dy*dy;
+
+	cosA = (dsP1P3 + dsP1P2 - dsP2P3)/(2*sqrtf(dsP1P3)*sqrtf(dsP1P2));
+	sinA = sqrtf(1-cosA*cosA);
+
+	return sqrtf(dsP1P3)*sinA;
 }
 
 bool GuidancePointMatch::bTopologyMatched(std::string currheader, std::string preheader)
@@ -394,10 +496,24 @@ void GuidancePointMatch::getCenterPoint()
 	centerPoint.setY(centerPoint.getY()/nAirLineSize);
 }
 
+void GuidancePointMatch::initExposureRate()
+{
+	std::map<int, std::vector<GuidancePoint*>* >::iterator it;
+	for (it = mapGPs.begin(); it != mapGPs.end(); ++it)
+	{
+		int lindIdx = it->first;
+		ExposureRate rate;
+		rate.exposurePointNum = 0;
+		rate.totalPointNum = it->second->size();
+		mapExposureLine.insert(make_pair(lindIdx, rate));
+	}
+}
+
 void GuidancePointMatch::readGuidancePoint(std::string filepath)
 {
 	registerGhtFile(filepath);
 	getCenterPoint();
+	initExposureRate();
 	if (0==pGaussProj)
 	{
 		pGaussProj = new GaussProjection(centerPoint);
@@ -430,4 +546,26 @@ void GuidancePointMatch::GaussProjection::getGussCoord(OGRPoint& p)
 	OGRCoordinateTransformation* pTrans = OGRCreateCoordinateTransformation(pSpaRef, &spaRef);
 	p.transform(pTrans);
 }
+
+///az_B: 线的斜率角 ptB： 线上的一个点的坐标
+///ptA:    要投影的点坐标
+///out_pt： ptA在线上的投影坐标
+void GuidancePointMatch::GetProjectionPt(COORDINATE ptA, 
+	                                     double az_B, 
+										 COORDINATE ptB,  
+										 COORDINATE &out_pt )
+{
+	double kA = tan( az_B * PI / 180 );
+	if (kA == 0) //垂线斜率不存在情况  
+	{  
+		out_pt.lon = ptA.lon;  
+		out_pt.lat = ptB.lat;  
+	}  
+	else  
+	{  
+		out_pt.lon = (double)((kA * ptA.lon + ptB.lon / kA + ptB.lat - ptA.lat) / (1 / kA + kA));  
+		out_pt.lat = (double)(-1 / kA * (out_pt.lon - ptB.lon) + ptB.lat);  
+	}  
+}
+
 
