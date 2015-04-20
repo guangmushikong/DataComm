@@ -182,6 +182,7 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 		}
 #endif
     }
+	mapGPs.insert(std::make_pair(nPreLnIdx, pVtrGPs));
     infile.close();
 
 #ifndef _MS_MFC
@@ -289,7 +290,7 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
 {
 	double currLineDistance = .0;
 	int currentLineIdx = nCurrentAirLine;
-	double nextLineDistance = .0;
+	double nextLineDistance = 1000000;
 	int nextLineIdx = (nCurrentAirLine+1);
 	COORDINATE currProP;
 	COORDINATE nextProP;
@@ -311,19 +312,23 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
 	GetProjectionPt(plane.pos, currAngle, begP, currProP);
 	currLineDistance = getDistance(plane.pos, currProP);
 
-	std::vector<GuidancePoint*>* nextGPs = mapGPs.find(nextLineIdx)->second;
-	if (nextGPs->size() > 2)
+	int num = mapGPs.size();
+	if( nextLineIdx <= num)
 	{
-		endP.lat = nextGPs->at(1)->point.lat;
-		endP.lon = nextGPs->at(1)->point.lon;
-		endP.high = nextGPs->at(1)->point.high;
-		begP.lat = nextGPs->at(0)->point.lat;
-		begP.lon = nextGPs->at(0)->point.lon;
-		begP.high = nextGPs->at(0)->point.high;
+		std::vector<GuidancePoint*>* nextGPs = mapGPs.find(nextLineIdx)->second;
+		if (nextGPs->size() > 2)
+		{
+			endP.lat = nextGPs->at(1)->point.lat;
+			endP.lon = nextGPs->at(1)->point.lon;
+			endP.high = nextGPs->at(1)->point.high;
+			begP.lat = nextGPs->at(0)->point.lat;
+			begP.lon = nextGPs->at(0)->point.lon;
+			begP.high = nextGPs->at(0)->point.high;
+		}
+		double nextAngle = CExposure::GetAngleFrom2Points(endP, begP);
+		GetProjectionPt(plane.pos, nextAngle, begP, nextProP);
+		nextLineDistance = getDistance(plane.pos, nextProP);
 	}
-	double nextAngle = CExposure::GetAngleFrom2Points(endP, begP);
-	GetProjectionPt(plane.pos, nextAngle, begP, nextProP);
-	nextLineDistance = getDistance(plane.pos, nextProP);
 
 	return currLineDistance<nextLineDistance?currentLineIdx:nextLineIdx;
 }

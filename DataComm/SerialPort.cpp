@@ -272,7 +272,7 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
 		DWORD len;
 		if(pSerialPort->ReadChar((char*)cRecved,len) == TRUE)  
         {  
-            //std::cout << cRecved ; 
+            std::cout << cRecved ; 
 			COMM_MESSAGE Msg;
 			memset(pSerialPort->m_cRecved, 0, 1024);
 			int iBinLen = 0;
@@ -293,7 +293,7 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
 					//	CLogFile *pFile;
 	                //   pFile->GetInstance()->WriteLog("ÏµÍ³Æô¶¯£¡", 10);
 					pSerialPort->m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
-//					CSqliteManger::GetInstance()->InsertPosition(Msg.body.position_info);
+					CSqliteManger::GetInstance()->InsertPosition(Msg.body.position_info);
 				}
 				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
 			}

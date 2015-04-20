@@ -125,6 +125,5 @@ void CMatchAirLinePoint::MatchCurrentAirLinePT(const GPRMC position)
 	cp.distanceMatchFlag = gp.getDistanceMatchedStatus();
 	cp.airlineMatchFlag = gp.getAirLineMatchedStatus();
 	cp.headingMatchFlag = gp.getHeadingMatchedStatus();
-	m_pGlobalAirLine->SetCurrentPiont(cp);
-	
+	m_pGlobalAirLine->SetCurrentPiont(cp);	
 }

@@ -35,24 +35,32 @@ CExposure::CExposure(void)
 	UDP_PARAM udpParam;
 	CSystemParam::GetUDPParam(udpParam);
 	m_udpServer.Init(udpParam.port);
-
+/*
 ////////TEST
 	COORDINATE ptend,ptstart; 
-	ptend.lat = 40.08157;
-	ptend.lon = 116.33788;
-	ptend.high = 200;
-	ptstart.lat = 40.0851;
-	ptstart.lon = 116.33788;
-	ptstart.high = 79;
+	ptstart.lat = 39.86130;
+	ptstart.lon =  116.20300;
+	ptstart.high = 200;
+	ptend.lat = 39.86176;
+	ptend.lon =  116.20400;
+	ptend.high = 79;
 	double dis = GetDistanFrom2Points(ptend,ptstart);
 	double an  = GetAngleFrom2Points(ptend,ptstart);
+
+	COORDINATE ptend1,ptstart1; 
+	ptstart1.lat = 39.87711;
+	ptstart1.lon =  116.23666;
+	ptend1.high = 200;
+	ptend1.lat = 39.87664 ;
+	ptend1.lon = 116.23565;
+	double an1  = GetAngleFrom2Points(ptend1,ptstart1);
 
 	DWORD my1 = GetTickCount();
 	Sleep(100);
 		DWORD my2 = GetTickCount();
 		DWORD nei = my2 - my1;
 		int sd = nei;
-	/*
+	
 	CSystemParam::GetExposurParam(m_expParam);
 	double airline_AZ;
 	double pos_AZ;
@@ -64,10 +72,26 @@ CExposure::CExposure(void)
 	airline_AZ = 1;
 	pos_AZ = 2;
 	ptB.lon = 0;
-	ptB.lat = 1;*/
+	ptB.lat = 1;
 	//GetProjectionPt(airline_AZ, ptA, pos_AZ, ptB, ptCross);
 
+	GPRMC pMsg;
+	pMsg.time = 600001;
+	pMsg.az = 23.34;
+	pMsg.vel = 123.432;
+	pMsg.status = '1';
+	pMsg.pos.high = 123.45;
+	pMsg.pos.lat =40.0851966667; //40.074805; 
+	pMsg.pos.lon =  116.34304;//116.33859;
 
+	CURRENT_POINT currentPT;
+	currentPT.lineIndex = 1;
+	currentPT.pintIndex = 1;
+	currentPT.position.lat = 45.4566;
+	currentPT.position.lon = 123.234;
+	currentPT.position.high = 23.1;
+	CSqliteManger::GetInstance()->InsertExposure(pMsg,currentPT);
+*/
 }
 
 
@@ -192,9 +216,17 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	}
 	m_lastTargetPT = currentPT;
 
-	if( !currentPT.distanceMatchFlag  || !currentPT.airlineMatchFlag )
+	if( !currentPT.distanceMatchFlag  || !currentPT.airlineMatchFlag ||currentPT.headingMatchFlag)
 	{
-		SendToUDP(pt,'0');
+/*	GPRMC pMsg;
+	pMsg.time = 600001;
+	pMsg.az = 23.34;
+	pMsg.vel = 123.432;
+	pMsg.status = '1';
+	pMsg.pos.high = 123.45;
+	pMsg.pos.lat =40.0851966667; //40.074805; 
+	pMsg.pos.lon =  116.34304;//116.33859;*/
+        SendToUDP(pt,'0');
 		return false;
 	}
 
@@ -210,13 +242,13 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 		return false;
 	}
 
-	double dvel = pt.vel * 1000/ 3600;///速度，m/s
+	double dvel = pt.vel ;///速度，m/s
 	CLogFile *pFile;
 	double nextSecDis = dvel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
 	double delayDis   = dvel * m_expParam.delay /1000;///相机延迟时间，飞行距离
 	if( distan > ( nextSecDis + delayDis ) )
 	{
-		string log = "曝光失败.曝光点信息：";
+		string log = "准备曝光中：";
 		char cLOG[180];
 		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f %s 曝光延迟%f", currentPT.lineIndex,currentPT.pintIndex,
 			                   currentPT.position.lon,currentPT.position.lat, m_sleepmsec );
@@ -239,18 +271,15 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 		m_lastTargetPT.status = true;
 
 
-		string log = "完成曝光.曝光点信息：";
+		string log = "完成曝光：";
 		char cLOG[180];
 		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f %s 曝光延迟%f", currentPT.lineIndex,currentPT.pintIndex,
 			                   currentPT.position.lon,currentPT.position.lat, m_sleepmsec );
 		log += cLOG;
-
 		
 	    pFile->GetInstance()->WriteLog(log.c_str(), log.length());
-		SendToUDP(pt,'0');
-		//CLogFile::Instance().WriteLog(log.c_str(), log.length());
-	//	CSqliteManger::GetInstance()->InsertExposure(pt,currentPT,delayDis,"'完成曝光'");
-
+		CSqliteManger::GetInstance()->InsertExposure(pt,currentPT);
+		SendToUDP(pt,'1');
 	}
 	return true;
 }

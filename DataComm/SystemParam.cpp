@@ -43,7 +43,8 @@ void CSystemParam::IniSysParam()
 	}
     m_exposureParam.trigger =  GetPrivateProfileIntA("EXPOSURE", "TRIGGER",  0, CONFIGFILENAME);
 	m_exposureParam.frequency =  GetPrivateProfileIntA("EXPOSURE", "FREQUENCY",  0, CONFIGFILENAME);
-	m_exposureParam.rate =  GetPrivateProfileIntA("EXPOSURE", "RATE",  0, CONFIGFILENAME)/100;
+	m_exposureParam.rate =  GetPrivateProfileIntA("EXPOSURE", "RATE",  0, CONFIGFILENAME);
+	m_exposureParam.rate/= 100;
 
 	///获取相机串口参数
 	m_cameraCommParam.port =  GetPrivateProfileIntA("CAMERA", "COMID", 0, CONFIGFILENAME);

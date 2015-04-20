@@ -4,15 +4,6 @@
 
 CDataProcess::CDataProcess(void)
 {
-	GPRMC pMsg;
-	pMsg.az = 23.34;
-	pMsg.vel = 123.432;
-	pMsg.status = '1';
-	pMsg.pos.high = 123.45;
-	pMsg.pos.lat = 41.1234567890;
-	pMsg.pos.lon = 121.1234567890;
-	string data;
-	PackGPRMC(&pMsg, data);
 }
 
 
@@ -151,7 +142,7 @@ void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
 	double lat, lon ;
 	char cValue[16], flag;
 	int num = 0, s_scale = 0, e_scale = 0;
-
+	memset(pMsg , 0, sizeof(GPRMC));
 	for( int i = 0; i < data.length(); i++)
 	{
 		if( data[i] != ',' )
@@ -228,6 +219,10 @@ void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
 			memset(cValue, 0, 16);
 	        memcpy(&cValue, data.data() + s_scale, e_scale - s_scale);
 			pMsg->az = atof(cValue);
+			if(pMsg->az > 360 || pMsg->az < 0)
+			{
+				pMsg->az = 0;
+			}
 
 			return;
 		}

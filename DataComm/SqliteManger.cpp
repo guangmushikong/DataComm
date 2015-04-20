@@ -34,8 +34,9 @@ bool CSqliteManger::InitDatabase()
 	string strSqlPos = "CREATE TABLE position( \
 					   ID        INTEGER PRIMARY KEY AUTOINCREMENT,\
 					   DataTime  TEXT,\
+					   gpsTime   NUMERIC(10),\
 					   latitude  NUMERIC(10),\
-					   longitude NUMERIC(10), \
+					   longitude NUMERIC(10),\
 					   hight     NUMERIC(10),\
 					   velocity  NUMERIC(10), \
 					   azimuth   NUMERIC(10) );";
@@ -51,20 +52,19 @@ bool CSqliteManger::InitDatabase()
 	}
 
 	string strSqlExp = "CREATE TABLE Exposure( \
-					   ID        INTEGER PRIMARY KEY AUTOINCREMENT,\
-					   DataTime  TEXT,\
-					   latitude  NUMERIC(10),\
-					   longitude NUMERIC(10), \
-					   hight     NUMERIC(10),\
-					   velocity  NUMERIC(10), \
-					   azimuth   NUMERIC(10),\
-					   line_lat  NUMERIC(10),\
-					   line_lon  NUMERIC(10), \
-					   line_hgt  NUMERIC(10),\
-					   line_num  INTEGER,\
-					   point_num INTEGER, \
-					   delay     NUMERIC(10),\
-					   status    TEXT);";
+					   ID          INTEGER PRIMARY KEY AUTOINCREMENT,\
+					   DataTime    TEXT,\
+					   gpsTime     NUMERIC(10),\
+					   latitude    NUMERIC(10),\
+					   longitude   NUMERIC(10),\
+					   hight       NUMERIC(10),\
+					   velocity    NUMERIC(10),\
+					   azimuth     NUMERIC(10),\
+					   line_lat    NUMERIC(10),\
+					   line_lon    NUMERIC(10),\
+					   line_hgt    NUMERIC(10),\
+					   line_index  INTEGER,\
+					   point_index INTEGER );";
 
 	nRes = sqlite3_exec(m_pDB, strSqlExp.c_str(), 0, 0, &cErrMsg);
 	if(nRes != SQLITE_OK)
@@ -82,7 +82,7 @@ bool CSqliteManger::InitDatabase()
 bool CSqliteManger::InsertPosition(GPRMC posInfo)
 {
 	string strInsPos = "INSERT INTO position( \
-					        DataTime, longitude, latitude, hight, velocity, azimuth )  \
+					        DataTime, gpsTime, longitude, latitude, hight, velocity, azimuth )  \
 						VALUES ( '";
 	char strTM[80];
 	CLogFile *pFile;
@@ -90,7 +90,7 @@ bool CSqliteManger::InsertPosition(GPRMC posInfo)
 	strInsPos += strTM;
 	strInsPos += "'";
 	char cPos[80];
-	sprintf(cPos,",%f, %f, %f, %f ,%f );", posInfo.pos.lon,posInfo.pos.lat,posInfo.pos.high,
+	sprintf(cPos,",%f, %f, %f, %f, %f ,%f );", posInfo.time, posInfo.pos.lon,posInfo.pos.lat,posInfo.pos.high,
 						                posInfo.vel, posInfo.az);
 	strInsPos += cPos;
 
@@ -108,18 +108,23 @@ bool CSqliteManger::InsertPosition(GPRMC posInfo)
 	}
 }
 
-bool CSqliteManger::InsertExposure(GPRMC posInfo,CURRENT_POINT ExpInfo, double delay, string status)
+bool CSqliteManger::InsertExposure(GPRMC posInfo,CURRENT_POINT ExpInfo)
 {
 	string strInsExp = "INSERT INTO Exposure( \
-					        DataTime, longitude, latitude, hight,    velocity,  azimuth, \
-							line_lon, line_lat,  line_hgt, line_num, point_num, delay , status)  \
-						VALUES ( ";
-	strInsExp += "'2001-03-34 13:21:30'";
+					        DataTime, gpsTime, longitude, latitude, hight, velocity, azimuth, \
+							line_lon, line_lat, line_hgt, line_index, point_index )  \
+						VALUES ( '";
+	char strTM[80];
+	CLogFile *pFile;
+	pFile->GetInstance()->GetTime(strTM);
+	strInsExp += strTM;
+	strInsExp += "'";
 	char cPos[180];
-	sprintf(cPos,",%f, %f, %f, %f ,%f, %f, %f, %f,%d, %d, %f, \'%s\' );", 
-		         posInfo.pos.lon,posInfo.pos.lat,posInfo.pos.high, posInfo.vel, posInfo.az,
-				 ExpInfo.position.lon,ExpInfo.position.lat,ExpInfo.position.high,
-				 ExpInfo.lineIndex,ExpInfo.pintIndex,delay, status.c_str());
+	sprintf(cPos,",%f, %f, %f, %f, %f ,%f, %f, %f, %f, %d, %d);", 
+		         posInfo.time,     posInfo.pos.lon, posInfo.pos.lat,
+				 posInfo.pos.high, posInfo.vel,     posInfo.az,
+				 ExpInfo.position.lon, ExpInfo.position.lat, ExpInfo.position.high,
+				 ExpInfo.lineIndex,    ExpInfo.pintIndex);
 	strInsExp += cPos;
 
 	char * cErrMsg;

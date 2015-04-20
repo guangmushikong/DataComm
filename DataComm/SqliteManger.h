@@ -28,6 +28,6 @@ public:
 	///插入位置数据
 	bool InsertPosition(GPRMC posInfo);
 	///插入曝光信息
-	bool InsertExposure(GPRMC posInfo,CURRENT_POINT ExpInfo, double delay, string status);
+	bool InsertExposure(GPRMC posInfo,CURRENT_POINT ExpInfo);
 };
 
