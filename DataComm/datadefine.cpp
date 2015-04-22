@@ -71,6 +71,7 @@ GuidancePointStatus::GuidancePointStatus()
 	bHeadingMatched = false;
 	bPosingMatched = false;
 	bTopologyMatched = false;
+	bExposure = false;
 }
 
 GuidancePointStatus::~GuidancePointStatus()
@@ -84,4 +85,5 @@ void GuidancePointStatus::resetStatus()
 	bHeadingMatched = false;
 	bPosingMatched = false;
 	bTopologyMatched = false;
+	bExposure = false;
 }

@@ -37,6 +37,7 @@ private:
 	bool bHeadingMatched;
 	bool bPosingMatched;
 	bool bTopologyMatched;
+	bool bExposure;
 };
 
 class GuidancePoint
@@ -68,6 +69,8 @@ public:
 	bool getPosingMatchedStatus(){ return GP_Status.bPosingMatched; }
 	void setTopologyMatchedStatus(bool status){ GP_Status.bTopologyMatched = status; }
 	bool getTopologyMatchedStatus(){ return GP_Status.bTopologyMatched; }
+	void setExposureStatus(bool status){ GP_Status.bExposure = status; }
+	bool getExposureStatus(){ return GP_Status.bExposure; }
 	COORDINATE point;
 #else
 	GuidancePoint(GuidancePointType t, QPointF p, int lVle=0, int pVle=0):
