@@ -95,7 +95,7 @@ public:
 
 	static void getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	{
-		GP_Match.getMatchedGP(tgrGP, plane);
+		GP_Match->getMatchedGP(tgrGP, plane);
 	}
 private:
 	static  EXPOSURE_PARAM      m_exposureParam;//曝光参数
@@ -106,7 +106,8 @@ private:
 	//GPS接收机串口参数
 	static COMM_PARAM m_gpsCommParam;
 
-	static GuidancePointMatch GP_Match;
+	//static GuidancePointMatch GP_Match;
+	static decorateGPMatch* GP_Match;
 
 	static UDP_PARAM m_udpParam;
 };

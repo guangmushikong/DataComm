@@ -5,39 +5,49 @@
 #include <vector>
 #include "GuidancePointMatch.h"
 
-class GuidancePointMatch
+class IGuidancePointMatch
 {
-	//class GaussProjection
-	//{
-	//public:
-	//	GaussProjection(OGRPoint center);
-	//	~GaussProjection(void);
-	//	void getGussCoord(OGRPoint& p);
-	//private:
-	//	OGRPoint centerPoint;
-	//};
-	class ExposureRate
-	{
-	public:
-		int totalPointNum;
-		int exposurePointNum;
-	};
+public:
+	IGuidancePointMatch(){}
+	~IGuidancePointMatch(){}
+	virtual bool getMatchedGP(GuidancePoint& tgrGP, GPRMC plane) = 0;
+	virtual void readGuidancePoint(std::string filepath) = 0;
+	virtual void setDistanceCriteria(double) = 0;
+	virtual void setHeadingCriteria(double) = 0;
+	virtual void setExposureRate(double) = 0;
+};
+
+class decorateGPMatch : public IGuidancePointMatch
+{
+public:
+	decorateGPMatch(IGuidancePointMatch* p);
+	~decorateGPMatch();
+	bool getMatchedGP(GuidancePoint& tgrGP, GPRMC plane);
+	void readGuidancePoint(std::string filepath);
+	void setDistanceCriteria(double);
+	void setHeadingCriteria(double);
+	void setExposureRate(double);
+protected:
+	IGuidancePointMatch* pGPMatch;
+	std::string logfile; 
+};
+
+class GuidancePointMatch : public IGuidancePointMatch
+{
 public:
 	GuidancePointMatch(void);
 	~GuidancePointMatch(void);
 	
 	void readGuidancePoint(std::string filepath);
 	bool getMatchedGP(GuidancePoint& tgrGP, GPRMC plane);
-	//bool getGaussCoord(OGRPoint& p);
 	void setDistanceCriteria(double _criteria);
 	void setHeadingCriteria(double _criteria);
 	void setExposureRate(double _criteria);
 
-	void testGetCenterPoint();
-	void testGetDistance();
-
 private:
 	int  getMatchedLine(const GPRMC& plane);
+	int  getMatchedLine(const GPRMC& plane, int flag=0);
+	int  binaryMatchedLine(const GPRMC& plane, int beginLineIdx, int endLineIdx);
 	void registerGhtFile(std::string filePath);
 	//double getDistance(OGRPoint p1, OGRPoint p2);
 	double getDistance(COORDINATE p1, COORDINATE p2);
@@ -51,6 +61,7 @@ private:
 	void GetProjectionPt(COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt );
 	void initExposureRate();
 	double getLineAngle(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane);
+	double getLineDistance(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane);
 	//double getLineExposureRate(const std::vector<GuidancePoint*>& vtrGPs);
 private:
 	double dDistanceCriteria;

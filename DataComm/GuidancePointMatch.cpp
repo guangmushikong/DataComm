@@ -4,19 +4,61 @@
 #include "GEGeoCaculate.h"
 #include <sstream>
 #include <fstream>
+#include <time.h>
 
-
-void GuidancePointMatch::testGetCenterPoint()
+decorateGPMatch::decorateGPMatch(IGuidancePointMatch* p)
 {
-	std::string filepath = "E:/GitHub/test_data/kkk2.ght";
-	readGuidancePoint(filepath);
+	pGPMatch = p;
+	logfile = "c:/GPMatch.log";
 }
 
-void GuidancePointMatch::testGetDistance()
+decorateGPMatch::~decorateGPMatch()
 {
-	//OGRPoint p1(116.58080, 39.51298);
-	//OGRPoint p2(116.58029, 39.51217);
-	//double dDistance = getDistance(p1, p2);
+	if (pGPMatch)
+	{
+		delete pGPMatch;
+	}
+}
+
+void decorateGPMatch::setDistanceCriteria(double _c)
+{
+	pGPMatch->setDistanceCriteria(_c);
+}
+
+void decorateGPMatch::setExposureRate(double _c)
+{
+	pGPMatch->setExposureRate(_c);
+}
+
+void decorateGPMatch::setHeadingCriteria(double _c)
+{
+	pGPMatch->setHeadingCriteria(_c);
+}
+
+void decorateGPMatch::readGuidancePoint(std::string filepath)
+{
+	pGPMatch->readGuidancePoint(filepath);
+}
+
+bool decorateGPMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
+{
+	bool bRlt = false;
+	bRlt = pGPMatch->getMatchedGP(tgrGP, plane);
+
+	if (bRlt)
+	{
+		time_t t = time(0);
+		char _time[64];
+		strftime(_time, sizeof(_time), "%Y-%m-%d %I:%M:%S:", localtime(&t));
+		ofstream outfile(logfile, ios::app);
+		outfile << _time << "exposure point(lineIndex: " << tgrGP.nLineIndex 
+			<< " "  << "PointIndex: " << tgrGP.nPointIndex
+			<< " "  << "lon: " << tgrGP.point.lon
+			<< " "  << "lat: " << tgrGP.point.lat << ")" << std::endl;
+		outfile.close();
+	}
+
+	return bRlt;
 }
 
 GuidancePointMatch::GuidancePointMatch(void)
@@ -28,7 +70,6 @@ GuidancePointMatch::GuidancePointMatch(void)
 	//header = "01-0A1";
 	nCurrentAirLine = 1;
 }
-
 
 GuidancePointMatch::~GuidancePointMatch(void)
 {
@@ -269,7 +310,7 @@ void GuidancePointMatch::releaseBuffer()
 
 int GuidancePointMatch::getOptimalGP(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane)
 {
-	int index = 0;
+	int index = -1;
 	double dDistance;
 	for (int it = 0; it < vtrGPs.size(); ++it)
 	{
@@ -289,6 +330,80 @@ int GuidancePointMatch::getOptimalGP(const std::vector<GuidancePoint*>& vtrGPs, 
 		}
 	}
 	return index;
+}
+
+// binary search the best airline based on distance
+int GuidancePointMatch::binaryMatchedLine(const GPRMC& plane, int beginLineIdx, int endLineIdx)
+{
+	double dBeginLineDistance = .0;
+	double dEndLineDistance = .0;
+
+	if ( beginLineIdx == endLineIdx )
+	{
+		return beginLineIdx;
+	}
+	else
+	{
+		if (beginLineIdx > 0 && beginLineIdx <= mapGPs.size() )
+		{
+			std::vector<GuidancePoint*>* pBeginLine = mapGPs.find(beginLineIdx)->second;
+			dBeginLineDistance = getLineDistance(*pBeginLine, plane);
+		}
+		if ( endLineIdx > 0 && endLineIdx <= mapGPs.size() )
+		{
+			std::vector<GuidancePoint*>* pEndLine = mapGPs.find(endLineIdx)->second;
+			dEndLineDistance = getLineDistance(*pEndLine, plane);
+		}
+		if (dBeginLineDistance < dEndLineDistance)
+		{
+			return binaryMatchedLine(plane, beginLineIdx, endLineIdx/2);
+		}
+		else
+		{
+			int _begin = endLineIdx/2;
+			if (endLineIdx/2 == beginLineIdx || 1 == (endLineIdx-beginLineIdx))
+			{
+				_begin = (beginLineIdx+1);
+			}
+			return binaryMatchedLine(plane, _begin, endLineIdx);
+		}
+	}
+}
+
+int GuidancePointMatch::getMatchedLine(const GPRMC& plane, int flag/* =0 */)
+{
+	int matchedLineIdx  = -1;
+	double angle        = -1.0;
+	double distance     = -1.0;
+	double exposureRate = -1.0;
+
+	int tmpLineIdx = binaryMatchedLine(plane, 1, mapGPs.size() );
+
+	if (tmpLineIdx != nCurrentAirLine)
+	{
+		std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.find(tmpLineIdx);
+		if ( it != mapGPs.end() )
+		{
+			std::vector<GuidancePoint*>* pGPs = it->second;
+			double lineangle = getLineAngle(*pGPs, plane);
+			angle = abs(lineangle - plane.az);
+			distance = getLineDistance(*pGPs, plane);
+			std::map<int, ExposureRate>::iterator itRate = mapExposureLine.find(tmpLineIdx-1);
+			if ( itRate != mapExposureLine.end() )
+			{
+				exposureRate = double(itRate->second.exposurePointNum)/itRate->second.totalPointNum;
+			}
+			
+			if (angle > 0 && angle < dHeadingCriteria &&
+				distance > 0 && distance < dDistanceCriteria && 
+				exposureRate > dExposureCriteria)
+			{
+				matchedLineIdx = tmpLineIdx;
+			}
+		}
+	}
+
+	return matchedLineIdx;
 }
 
 // get the matched AirLine according to the plane position
@@ -334,6 +449,17 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
 		{
 			bRlt = false;
 		}
+		//double currAngle = getLineAngle(*currGPs, plane);
+		//if (currAngle > 0)
+		//{
+		//	int currIdx = getOptimalGP(*currGPs, plane);
+		//	if (currIdx > 0 && currIdx < currGPs->size())
+		//	{
+		//		GetProjectionPt(plane.pos, currAngle, currGPs->at(currIdx), currProP);
+		//	}
+		//}
+		//else
+		//	bRlt = false;
 
 		it = mapGPs.find(nextLineIdx);
 		if (it != mapGPs.end())
@@ -386,41 +512,88 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
 	return matchedLineIdx;
 }
 
+double GuidancePointMatch::getLineDistance(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane)
+{
+	double distance = -1.0;
+	double angle = -1.0;
+	COORDINATE start, end;
+	COORDINATE projectPt;
+	int idx, preidx;
+	//assert(vtrGPs.size() > 1);
+
+	if ( vtrGPs.size() > 1 )
+	{
+		idx = getOptimalGP(vtrGPs, plane);
+		if (idx == 0)
+		{
+			preidx = 1;
+			start.lat = vtrGPs.at(idx)->point.lat;
+			start.lon = vtrGPs.at(idx)->point.lon;
+			end.lat = vtrGPs.at(preidx)->point.lat;
+			end.lon = vtrGPs.at(preidx)->point.lon;
+		}
+		else
+		{
+			preidx = idx -1;
+			end.lat = vtrGPs.at(idx)->point.lat;
+			end.lon = vtrGPs.at(idx)->point.lon;
+			start.lat = vtrGPs.at(preidx)->point.lat;
+			start.lon = vtrGPs.at(preidx)->point.lon;
+		}
+
+		if ( idx>=0 && idx<vtrGPs.size())
+		{
+			if (preidx>=0 && preidx<vtrGPs.size())
+			{
+				angle = CExposure::GetAngleFrom2Points(end, start);
+				GetProjectionPt(plane.pos, angle, start, projectPt);
+				distance = getDistance(plane.pos, projectPt);
+			}
+		}
+	}
+
+	return distance;
+}
+
 double GuidancePointMatch::getLineAngle(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane)
 {
 	int idx = 0;
 	int preidx = 0;
 	COORDINATE start, end;
-	double angle;
+	double angle = -1.0;
 
-	idx = getOptimalGP(vtrGPs, plane);
-	if (idx == 0)
+	if ( vtrGPs.size() > 1 )
 	{
-		preidx = 1;
-		start.lat = vtrGPs.at(idx)->point.lat;
-		start.lon = vtrGPs.at(idx)->point.lon;
-		end.lat = vtrGPs.at(preidx)->point.lat;
-		end.lon = vtrGPs.at(preidx)->point.lon;
-	}
-	else
-	{
-		preidx = idx -1;
-		end.lat = vtrGPs.at(idx)->point.lat;
-		end.lon = vtrGPs.at(idx)->point.lon;
-		start.lat = vtrGPs.at(preidx)->point.lat;
-		start.lon = vtrGPs.at(preidx)->point.lon;
-	}
-
-	if ( idx>=0 && idx<vtrGPs.size())
-	{
-		if (preidx>=0 && preidx<vtrGPs.size())
+		idx = getOptimalGP(vtrGPs, plane);
+		if (idx == 0)
 		{
-			angle = CExposure::GetAngleFrom2Points(end, start);
+			preidx = 1;
+			start.lat = vtrGPs.at(idx)->point.lat;
+			start.lon = vtrGPs.at(idx)->point.lon;
+			end.lat = vtrGPs.at(preidx)->point.lat;
+			end.lon = vtrGPs.at(preidx)->point.lon;
+		}
+		else
+		{
+			preidx = idx -1;
+			end.lat = vtrGPs.at(idx)->point.lat;
+			end.lon = vtrGPs.at(idx)->point.lon;
+			start.lat = vtrGPs.at(preidx)->point.lat;
+			start.lon = vtrGPs.at(preidx)->point.lon;
+		}
+
+		if ( idx>=0 && idx<vtrGPs.size())
+		{
+			if (preidx>=0 && preidx<vtrGPs.size())
+			{
+				angle = CExposure::GetAngleFrom2Points(end, start);
+			}
 		}
 	}
 
 	return angle;
 }
+
 
 bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 {
@@ -428,8 +601,9 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	//OGRPoint _plane(plane.pos.lon, plane.pos.lat);
 	COORDINATE pStart;
 	COORDINATE pEnd;
-	double dAirLineHeading = .0;
+	double LineHeading = -1.0;
 
+	//int nMatchedLine = getMatchedLine(plane, 1);
 	int nMatchedLine = getMatchedLine(plane);
 	if (-1 != nMatchedLine)
 	{
@@ -441,21 +615,26 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	{
 		std::vector<GuidancePoint*> vtrRltPoint;
 		std::vector<GuidancePoint*>* pVtrGPs = it->second;
-		// distance criteria
-		for (std::vector<GuidancePoint*>::iterator it = pVtrGPs->begin(); 
-			it != pVtrGPs->end(); ++it)
+
+		LineHeading = getLineAngle(*pVtrGPs, plane);
+		if (abs(LineHeading-plane.az) < dHeadingCriteria)
 		{
-			GuidancePoint* pGP = *it;
-			pGP->resetStatus();
-			//OGRPoint gp(pGP->point.lon, pGP->point.lat);
-			//double dTmpDistance = getDistance(_plane, gp);
-			double dTmpDistance = getDistance(plane.pos, pGP->point);
-			if(dTmpDistance < dDistanceCriteria)
+			// distance criteria
+			for (std::vector<GuidancePoint*>::iterator it = pVtrGPs->begin(); 
+				it != pVtrGPs->end(); ++it)
 			{
-				pGP->setAirLineMatchedStatus(true);
-				pGP->setDistanceMatchedStatus(true);
-				pGP->setHeadingMatchedStatus(true);
-				vtrRltPoint.push_back(pGP);
+				GuidancePoint* pGP = *it;
+				pGP->resetStatus();
+				//OGRPoint gp(pGP->point.lon, pGP->point.lat);
+				//double dTmpDistance = getDistance(_plane, gp);
+				double dTmpDistance = getDistance(plane.pos, pGP->point);
+				if(dTmpDistance < dDistanceCriteria)
+				{
+					pGP->setAirLineMatchedStatus(true);
+					pGP->setDistanceMatchedStatus(true);
+					pGP->setHeadingMatchedStatus(true);
+					vtrRltPoint.push_back(pGP);
+				}
 			}
 		}
 
@@ -463,7 +642,7 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 		{
 			// posing criteria
 
-			// topology criteria -- don't implement for now
+			// topology criteria
 
 			// get optimal GP
 			int GPIdx = getOptimalGP(vtrRltPoint, plane);

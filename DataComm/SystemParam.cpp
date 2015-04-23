@@ -7,7 +7,7 @@
 EXPOSURE_PARAM    CSystemParam::m_exposureParam;
 COMM_PARAM CSystemParam::m_cameraCommParam;
 COMM_PARAM CSystemParam::m_gpsCommParam;
-GuidancePointMatch CSystemParam::GP_Match;
+decorateGPMatch* CSystemParam::GP_Match = 0;
 UDP_PARAM CSystemParam::m_udpParam;
 
 CSystemParam::CSystemParam(void)
@@ -58,10 +58,11 @@ void CSystemParam::IniSysParam()
 	m_udpParam.port = GetPrivateProfileIntA("UDP", "PORT", 0, CONFIGFILENAME);
 
 	///获取航迹点信息
-	GP_Match.readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
-	GP_Match.setDistanceCriteria(m_exposureParam.distan);
-	GP_Match.setHeadingCriteria(m_exposureParam.angle);
-	GP_Match.setExposureRate( m_exposureParam.rate);
+	GP_Match = new decorateGPMatch(new GuidancePointMatch);
+	GP_Match->readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
+	GP_Match->setDistanceCriteria(m_exposureParam.distan);
+	GP_Match->setHeadingCriteria(m_exposureParam.angle);
+	GP_Match->setExposureRate( m_exposureParam.rate);
 }
 
 void CSystemParam::GetExposurParam(EXPOSURE_PARAM &param)

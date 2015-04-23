@@ -84,4 +84,11 @@ public:
 		GuidancePointStatus GP_Status;
 };
 
+class ExposureRate
+{
+public:
+	int totalPointNum;
+	int exposurePointNum;
+};
+
 #endif // DATADEFINE_H
