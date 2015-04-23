@@ -46,7 +46,7 @@ public:
 
 private:
 	int  getMatchedLine(const GPRMC& plane);
-	int  getMatchedLine(const GPRMC& plane, int flag=0);
+	int  getMatchedLine(const GPRMC& plane, int flag);
 	int  binaryMatchedLine(const GPRMC& plane, int beginLineIdx, int endLineIdx);
 	void registerGhtFile(std::string filePath);
 	//double getDistance(OGRPoint p1, OGRPoint p2);
@@ -62,6 +62,7 @@ private:
 	void initExposureRate();
 	double getLineAngle(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane);
 	double getLineDistance(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane);
+	double getLinePlaneAngle(double _angle1, double _angle2);
 	//double getLineExposureRate(const std::vector<GuidancePoint*>& vtrGPs);
 private:
 	double dDistanceCriteria;

@@ -386,7 +386,8 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane, int flag/* =0 */)
 		{
 			std::vector<GuidancePoint*>* pGPs = it->second;
 			double lineangle = getLineAngle(*pGPs, plane);
-			angle = abs(lineangle - plane.az);
+			//angle = abs(lineangle - plane.az);
+			angle = getLinePlaneAngle(lineangle, plane.az);
 			distance = getLineDistance(*pGPs, plane);
 			std::map<int, ExposureRate>::iterator itRate = mapExposureLine.find(tmpLineIdx-1);
 			if ( itRate != mapExposureLine.end() )
@@ -489,7 +490,8 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
 				// angle
 				std::vector<GuidancePoint*>* pNextLine = mapGPs.find(nextLineIdx)->second;
 				double nextangle = getLineAngle(*pNextLine, plane);
-				nextangle = abs(nextangle-plane.az);
+				//nextangle = abs(nextangle-plane.az);
+				nextangle = getLinePlaneAngle(nextangle, plane.az);
 
 				// get current line's exposure rate
 				itRate = mapExposureLine.find(currentLineIdx);
@@ -510,6 +512,18 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
 	}
 
 	return matchedLineIdx;
+}
+
+double GuidancePointMatch::getLinePlaneAngle(double _angle1, double _angle2)
+{
+	double angle = -1.0;
+	angle = abs(_angle1 - _angle2);
+	if (angle > 180.0)
+	{
+		angle = 360.0 - angle;
+	}
+
+	return angle;
 }
 
 double GuidancePointMatch::getLineDistance(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane)
@@ -617,7 +631,8 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 		std::vector<GuidancePoint*>* pVtrGPs = it->second;
 
 		LineHeading = getLineAngle(*pVtrGPs, plane);
-		if (abs(LineHeading-plane.az) < dHeadingCriteria)
+		//if (abs(LineHeading-plane.az) < dHeadingCriteria)
+		if (getLinePlaneAngle(LineHeading, plane.az) < dHeadingCriteria)
 		{
 			// distance criteria
 			for (std::vector<GuidancePoint*>::iterator it = pVtrGPs->begin(); 
