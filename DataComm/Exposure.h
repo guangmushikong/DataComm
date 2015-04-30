@@ -11,6 +11,7 @@
 #include "GaussProjection.h"
 #include "GEGeoCaculate.h"
 #include "UDPServer.h"
+#include "LogFile.h"
 
 //数学常数pei
 #define  PI				3.1415926535898
@@ -32,7 +33,7 @@ public:
 	virtual void DataUpdate( char *pBuffer, int size );
 
 private:
-	void GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt );
+	void GetProjectionPt( COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt );
 	///以当前航向，当前速度行驶，下一次上报数据时，飞机的位置
 	void GetNextStepPt( COORDINATE ptA, double vl, double az, double freq, COORDINATE &cross );
 
@@ -43,6 +44,8 @@ private:
 	double GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart);
 
 	bool IsNeedExposure(GPRMC pt);
+
+	bool GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &currentPT, double & delayms, double & distan);
 
 	///从方位角获取水平角
 	double GetHoriFromAZ(double az_A );
@@ -130,10 +133,12 @@ private:
 	HANDLE	m_hEvtExposure;
 
 	///休息毫秒数
-	DWORD m_sleepmsec;
+	int m_sleepmsec;
 
 	CSystemParam  m_syfParam;
 
 	CGEGeoCaculate m_GEGeoCaculate;
+
+	CLogFile  *m_pFile;
 };
 
