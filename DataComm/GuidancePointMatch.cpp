@@ -639,16 +639,18 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 				it != pVtrGPs->end(); ++it)
 			{
 				GuidancePoint* pGP = *it;
-				pGP->resetStatus();
-				//OGRPoint gp(pGP->point.lon, pGP->point.lat);
-				//double dTmpDistance = getDistance(_plane, gp);
-				double dTmpDistance = getDistance(plane.pos, pGP->point);
-				if(dTmpDistance < dDistanceCriteria)
+				// 2015-5-8 Only Normal Type Point engage in the next procedure
+				if (GuidancePoint::Normal == pGP->type)
 				{
-					pGP->setAirLineMatchedStatus(true);
-					pGP->setDistanceMatchedStatus(true);
-					pGP->setHeadingMatchedStatus(true);
-					vtrRltPoint.push_back(pGP);
+					pGP->resetStatus();
+					double dTmpDistance = getDistance(plane.pos, pGP->point);
+					if(dTmpDistance < dDistanceCriteria)
+					{
+						pGP->setAirLineMatchedStatus(true);
+						pGP->setDistanceMatchedStatus(true);
+						pGP->setHeadingMatchedStatus(true);
+						vtrRltPoint.push_back(pGP);
+					}
 				}
 			}
 		}
@@ -764,7 +766,8 @@ void GuidancePointMatch::initExposureRate()
 		int lindIdx = it->first;
 		ExposureRate rate;
 		rate.exposurePointNum = 0;
-		rate.totalPointNum = it->second->size();
+		// 2015-5-8 Only Normal Type Point engage in the calculation of exposure rate
+		rate.totalPointNum = (it->second->size()-4);
 		mapExposureLine.insert(make_pair(lindIdx, rate));
 	}
 }
