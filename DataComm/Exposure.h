@@ -64,6 +64,13 @@ public:
 
 	static UINT WINAPI DataProcessThread( void* pParam );
 
+	///添加已曝光点
+	bool AddExposurePoint(int lineIndex, int pointIndex);
+
+	///获取曝光点是否曝光状态
+	bool GetExposurePointStatus(int lineIndex, int pointIndex);
+
+	int JoinInt(int front,int back);
 ////串口监听
 public:
 	 /** 开启监听线程  
@@ -140,5 +147,7 @@ private:
 	CGEGeoCaculate m_GEGeoCaculate;
 
 	CLogFile  *m_pFile;
+
+	std::list<int>  m_pointList;
 };
 

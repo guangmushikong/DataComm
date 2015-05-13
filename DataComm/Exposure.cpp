@@ -223,13 +223,16 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	CURRENT_POINT currentPT;
 	m_pGlobalAirLine->GetCurrentPiont( currentPT );
 	currentPT.status = false;
-	if( m_lastTargetPT.lineIndex == currentPT.lineIndex && m_lastTargetPT.pintIndex == currentPT.pintIndex && m_lastTargetPT.status == true )
+
+	///已经曝光过了
+	if( GetExposurePointStatus(currentPT.lineIndex, currentPT.pintIndex) )
 	{
-		SendToUDP(pt,'0');
+	    SendToUDP(pt,'0');
 		return false;
 	}
-	m_lastTargetPT = currentPT;
 
+	m_lastTargetPT = currentPT;
+	///如果匹配状态不满足要求
 	if( !currentPT.distanceMatchFlag  || !currentPT.airlineMatchFlag || !currentPT.headingMatchFlag)
 	{
         SendToUDP(pt,'0');
@@ -255,6 +258,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 		m_sleepmsec = delayms / m_expParam.frequency * 1000;
 		SetEvent(m_hEvtExposure);
 
+		AddExposurePoint(currentPT.lineIndex, currentPT.pintIndex);
 		///记录日志
 		string log = "完成曝光：";
 		char cLOG[180];
@@ -451,6 +455,54 @@ double CExposure::GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart)
 	*/
 }
 
+///添加已曝光点
+bool CExposure::AddExposurePoint(int lineIndex, int pointIndex)
+{
+	if( lineIndex > 0 && pointIndex > 0 )
+	{
+		int newint = JoinInt(lineIndex, pointIndex );
+		m_pointList.push_back(newint);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+///获取曝光点是否曝光状态
+bool CExposure::GetExposurePointStatus(int lineIndex, int pointIndex)
+{
+	if( lineIndex > 0 && pointIndex > 0 )
+	{
+		int newint = JoinInt(lineIndex, pointIndex );
+		std::list<int>::iterator iter = m_pointList.begin();
+		for( ; iter != m_pointList.end(); iter++ )
+		{
+			if( *iter == newint )
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+int CExposure::JoinInt(int front,int back)
+{ 
+	int temp = back; 
+	while ( temp % 10 ) 
+	{  
+		front *= 10; 
+		temp /= 10; 
+	} 
+	return front + back;
+}
+
 bool CExposure::OpenListenThread()  
 {  
     /** 检测线程是否已经开启了 */   
@@ -482,8 +534,7 @@ UINT WINAPI CExposure::ListenThread( void* pParam )
 {  
     /** 得到本类的指针 */   
     CExposure *pSerialPort = reinterpret_cast<CExposure*>(pParam);  
- 
-    // 线程循环,轮询方式读取串口数据  
+  
     while (!pSerialPort->s_bListenExit)   
     {  
 		DWORD ret = WaitForSingleObject(pSerialPort->m_hEvtExposure, -1 );
