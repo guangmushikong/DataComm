@@ -230,7 +230,7 @@ void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
 	}
 }
 
-void CDataProcess::PackGPRMC( const GPRMC *pMsg, string &data)
+void CDataProcess::PackGPRMC( const GPRMC *pMsg,  string &data ,int lineIndex, int pointIndex)
 {
 	char tmp[20];
 	sprintf(tmp, "tm:%6f", pMsg->time);
@@ -258,5 +258,14 @@ void CDataProcess::PackGPRMC( const GPRMC *pMsg, string &data)
 
 	data += ",status:";
 	data += pMsg->status;
+
+	memset(tmp, 0, 20);
+	sprintf(tmp, ",lineIndex:%d", lineIndex);
+	data += tmp;
+
+	memset(tmp, 0, 20);
+	sprintf(tmp, ",pointIndex:%d", pointIndex);
+	data += tmp;
+
 	data += '\0';
 }

@@ -213,7 +213,15 @@ void CExposure::SendToUDP(GPRMC pt, char status)
 {
 	string msg;
 	pt.status = status;
-	m_dataProcess.PackGPRMC(&pt, msg);
+	if(status == '1' )
+	{
+		m_dataProcess.PackGPRMC(&pt, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
+	}
+	else
+	{
+		m_dataProcess.PackGPRMC(&pt, msg);
+	}
+
 	m_udpServer.SendData(msg.c_str(),msg.size());
 }
 
