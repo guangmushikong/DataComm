@@ -280,7 +280,11 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
 			if( iBinLen > 0)
 			{
 				//pSerialPort->FormatTrans(cRecved, &Msg);
-			    pSerialPort->FormatTrans(pSerialPort->m_cRecved, &Msg);
+			    if ( !pSerialPort->FormatTrans(pSerialPort->m_cRecved, &Msg) )
+				{
+					continue;
+				}
+
 				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
 				if( Msg.msgtype == MSG_GPRMC)
 				{
@@ -290,12 +294,10 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
 					sprintf(cLOG,"经度%f 纬度%f 高程%f 速度%f 方位角%f", Msg.body.position_info.pos.lon,Msg.body.position_info.pos.lat,Msg.body.position_info.pos.high,
 						Msg.body.position_info.vel,Msg.body.position_info.az);
 					log += cLOG;
-					//	CLogFile *pFile;
-	                //   pFile->GetInstance()->WriteLog("系统启动！", 10);
+
 					pSerialPort->m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
 					CSqliteManger::GetInstance()->InsertPosition(Msg.body.position_info);
 				}
-				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
 			}
 
             continue;  
@@ -408,7 +410,7 @@ void CSerialPort::DataPackage( const char *pBuffer, const int size,  char *pOutB
 	
 }
 
-int CSerialPort::FormatTrans(const string &data, COMM_MESSAGE *pMsg)
+bool CSerialPort::FormatTrans(const string &data, COMM_MESSAGE *pMsg)
 {
     const char *pData = data.data();
 
@@ -424,22 +426,28 @@ int CSerialPort::FormatTrans(const string &data, COMM_MESSAGE *pMsg)
 		pMsg->msgtype = MSG_GPGGA;
 		m_dataProcess.UnPackGPGGA(data, &pMsg->body.position);
 		m_high = pMsg->body.position.pos.high;
-		return 1;
+		if (pMsg->body.position.status == '1')
+		{
+		    return true;
+		}
 	}
 	else if (strncmp(pData, "$GPVTG", 6) == 0)
 	{
 		pMsg->msgtype = MSG_GPVTG;
 		m_dataProcess.UnPackGPVTG(data, &pMsg->body.velocity);
-		return 1;
+		return true;
 	}
 	else if (strncmp(pData, "$GPRMC", 6) == 0)
 	{
 		pMsg->msgtype = MSG_GPRMC;
 		m_dataProcess.UnPackGPRMC(data, &pMsg->body.position_info);
-		return 1;
+	    if (pMsg->body.position_info.status == '1')
+		{
+		    return true;
+		}
 	}
 	
-	return 1;
+	return false;
 }
 void CSerialPort::AddObserver( IDataUpdate *pObserver )
 {

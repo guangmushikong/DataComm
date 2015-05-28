@@ -122,6 +122,8 @@ private:
 	//∆ÿπ‚—”≥Ÿ
 	double m_delay;
 
+	double m_lastDistan;
+
 	//UDP∂‘œÛ
 	CUDPServer m_udpServer; 
 

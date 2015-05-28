@@ -179,7 +179,7 @@ private:
      */ 
     static UINT WINAPI ListenThread(void* pParam);  
 
-	int FormatTrans(const string &data, COMM_MESSAGE *pMsg);
+	bool FormatTrans(const string &data, COMM_MESSAGE *pMsg);
 
 	void DataPackage( const char *pBuffer, const int size,  char *pOutBuffer, int &iBinLen);
 protected:

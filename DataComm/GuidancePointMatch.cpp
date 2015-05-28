@@ -49,7 +49,7 @@ bool decorateGPMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	{
 		time_t t = time(0);
 		char _time[64];
-		strftime(_time, sizeof(_time), "%Y-%m-%d %I:%M:%S:", localtime(&t));
+		strftime(_time, sizeof(_time), "%Y-%m-%d %H:%M:%S:", localtime(&t));
 		ofstream outfile(logfile, ios::app);
 		outfile << _time << "exposure point(lineIndex: " << tgrGP.nLineIndex 
 			<< " "  << "PointIndex: " << tgrGP.nPointIndex
