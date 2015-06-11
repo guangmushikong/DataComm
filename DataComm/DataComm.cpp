@@ -56,8 +56,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	serialPort.AddObserver(&exposure);
 	serialPort.AddObserver(&match);
 
-    int temp;  
-    std::cin >> temp;  
+	int temp;
+	std::cin >> temp; 
 
 	return 0;
 }

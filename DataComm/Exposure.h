@@ -33,7 +33,7 @@ public:
 	virtual void DataUpdate( char *pBuffer, int size );
 
 private:
-	void GetProjectionPt( COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt );
+	void GetProjectionPt( COORDINATE ccp, double az_B, COORDINATE armPT,  COORDINATE &out_pt);
 	///以当前航向，当前速度行驶，下一次上报数据时，飞机的位置
 	void GetNextStepPt( COORDINATE ptA, double vl, double az, double freq, COORDINATE &cross );
 
@@ -43,6 +43,9 @@ private:
 	///获取两点距离
 	double GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart);
 
+	///获取两点距离:根据飞行角度和飞行的距离
+	double GetDistanForCalcPoint(COORDINATE linePt, COORDINATE cpp,double az, double distan);
+
 	bool IsNeedExposure(GPRMC pt);
 
 	bool GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &currentPT, double & delayms, double & distan);
@@ -51,6 +54,8 @@ private:
 	double GetHoriFromAZ(double az_A );
 
 	void SendToUDP(GPRMC pt, char status);
+
+	bool isContain(double s_X, double s_Y, double e_X, double e_Y, double p_X, double p_Y);
 public:
 	UINT DPThdImp(LPVOID pParam);
 	 /** 开启监听线程  

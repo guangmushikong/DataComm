@@ -36,25 +36,28 @@ CExposure::CExposure(void)
 	CSystemParam::GetUDPParam(udpParam);
 	m_udpServer.Init(udpParam.port);
 
+/*	
 ////////TEST
 	GPRMC plane;
 	plane.time = 600001;
-	plane.az = 173.960000;
-	plane.vel = 56.9;
+	plane.az = 26.90 ;
+	plane.vel = 150.567600     ;
 	plane.status = '1';
-	plane.pos.high = 58;
-	plane.pos.lat = 39.870867  ;//40.072800; 
-	plane.pos.lon = 116.223990 ;//116.338220;//
+	plane.pos.high = 111.30;
+	plane.pos.lat = 35.439273  ;//40.072800; 
+	plane.pos.lon = 113.964950  ;//116.338220;//
 
 	CURRENT_POINT currentPT;
 	currentPT.position.high = 36;
-	currentPT.position.lat = 39.87034;//40.081570;
-	currentPT.position.lon =  116.22262;//116.338005;//116.337880;
+	currentPT.position.lat =  35.439070 ;//40.081570;
+	currentPT.position.lon =  113.964460 ;//116.338005;//116.337880;
+	double distan2 = GetDistanFrom2Points(currentPT.position,plane.pos);
+	double distan3 = GetDistanForCalcPoint(currentPT.position,plane.pos,plane.az,plane.vel/3.6*2);
 
 	bool status    = false;
 	double delayms = 0.0, distan = 0.0;
 	status = GetExposureStatus( plane, currentPT, delayms, distan);
-	double distan2 = GetDistanFrom2Points(currentPT.position,plane.pos);
+
 	m_sleepmsec = delayms / m_expParam.frequency * 1000;
 
 	plane.time = 600001;
@@ -66,22 +69,24 @@ CExposure::CExposure(void)
 	plane.pos.lon = 116.338203;//;116.338220;//116.337992;//116.338027;// 116.338680; // 116.338680 ;
 
 	status = GetExposureStatus( plane, currentPT, delayms, distan);
+	
 
-/*
 	//outPT = {lon=116.33867871830509 lat=40.072432822958994 
 
 	///夹角
 //	double angle  = GetAngleFrom2Points(outPT, ptend);
 	///获取拍摄点在飞机飞行航线上的投影与。
-//	double distan = GetDistanFrom2Points(ptend, outPT);
+	double distan = GetDistanFrom2Points(ptend, outPT);
 
 	COORDINATE ptend1,ptstart1; 
-	ptstart1.lat = 39.87711;
-	ptstart1.lon =  116.23666;
+	ptstart1.lat = 35.434320 ;
+	ptstart1.lon =  113.944445;
 	ptend1.high = 200;
-	ptend1.lat = 39.87664 ;
-	ptend1.lon = 116.23565;
+	ptend1.lat = 35.43420 ;
+	ptend1.lon = 113.94450;
+
 	double an1  = GetAngleFrom2Points(ptend1,ptstart1);
+	double distan = GetDistanFrom2Points(ptend1,ptstart1);
 
 	DWORD my1 = GetTickCount();
 	Sleep(100);
@@ -119,7 +124,7 @@ CExposure::CExposure(void)
 	currentPT.position.lon = 123.234;
 	currentPT.position.high = 23.1;
 	CSqliteManger::GetInstance()->InsertExposure(pMsg,currentPT);
-*/
+	*/
 }
 
 
@@ -140,22 +145,6 @@ void CExposure::DataUpdate( char *pBuffer, int size )
 	m_pContainer->PushData( lpData );
 
 	SetEvent(m_hEvtsDPThread);	
-	/*
-		COMM_MESSAGE lpData = *(COMM_MESSAGE*)pBuffer;	
-	double airline_AZ;
-	double pos_AZ;
-	double point_lat, point_lon;
-	double pos_lat, pint_lon;
-	COORDINATE ptA, ptB, ptCross;
-	ptA.lon = 0;
-	ptA.lat = 0;
-	airline_AZ = 1;
-	pos_AZ = 2;
-	ptB.lon = 0;
-	ptB.lat = 1;
-	IsNeedExposure(lpData.body.position);
-	GetProjectionPt(atan(airline_AZ), ptA, atan(pos_AZ), ptB, ptCross);
-	*/
 }
 
 UINT CExposure::DPThdImp( LPVOID pParam )
@@ -174,6 +163,7 @@ UINT CExposure::DPThdImp( LPVOID pParam )
 				while (m_pContainer->GetData(pstrMsg))
 				{
 					COMM_MESSAGE *commMsg = (COMM_MESSAGE* )pstrMsg->c_str();
+					//COMM_MESSAGE msg = *(COMM_MESSAGE*)pBuffer;
 					if(commMsg->msgtype == MSG_GPGGA)
 					{
 					//	IsNeedExposure(commMsg->body.position);
@@ -267,9 +257,9 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	{
 		string log = "准备曝光中：";
 		char cLOG[256];
-		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f 曝光延迟%d 距离%f 飞机位置 经度%f 纬度%f 速度%f 方位角%f", 
+		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f 距离%f 飞机位置 经度%f 纬度%f 速度%f 方位角%f", 
 			          currentPT.lineIndex,currentPT.pintIndex, currentPT.position.lon,currentPT.position.lat, 
-					  m_sleepmsec, distan, pt.pos.lon,pt.pos.lat,pt.vel,pt.az);
+					  distan, pt.pos.lon,pt.pos.lat,pt.vel,pt.az);
 		log += cLOG;
 		m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
 		SendToUDP(pt,'0');
@@ -298,6 +288,56 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 		SendToUDP(pt, '1');
 	}
 	return true;
+}
+/*
+bool CExposure::GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &currentPT, double & delayms, double & distan )
+{
+	distan  = GetDistanFrom2Points(planeInfo.pos, currentPT.position);
+	///如果发现飞机开始远离拍摄点立即拍摄
+	if( distan > m_lastDistan && distan < m_expParam.distan)
+	{
+		string log = "开始远离曝光点：";
+		char cLOG[256];
+		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f 曝光延迟%d 距离%f 飞机位置 经度%f 纬度%f 速度%f 方位角%f", 
+			          currentPT.lineIndex,currentPT.pintIndex, currentPT.position.lon,currentPT.position.lat, 
+					  m_sleepmsec, distan, planeInfo.pos.lon,planeInfo.pos.lat,planeInfo.vel,planeInfo.az);
+		log += cLOG;		
+	    m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+
+		m_lastDistan = 9999999;
+		return true;
+	}
+
+	double angle = GetAngleFrom2Points(currentPT.position, planeInfo.pos );
+	double dAngle = planeInfo.az - angle;
+
+//	double delayDis   = dvel * m_expParam.delay /1000;///相机延迟时间，飞行距离(暂时不考虑)
+//  double scale = (distan - delayDis)/ nextSecDis / m_expParam.frequency ;
+	double dvel = planeInfo.vel / 3.6 ;///速度，m/s
+	double nextSecDis = dvel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
+    double calcDis = GetDistanFrom2Points(currentPT.position, planeInfo.pos, planeInfo.az, nextSecDis );
+	if( calcDis > distan)
+	{
+		string log = "精确曝光计算成功：";
+		char cLOG[256];
+		sprintf(cLOG,"分速度（m/s）%f 与曝光点距离%f",dvel, distan );
+		log += cLOG;		
+	    m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+
+		delayms = distan / nextSecDis;
+		m_lastDistan = 9999999;
+		return true;
+	}
+	else
+	{
+		string log = "精确曝光计算失败：";
+		char cLOG[256];
+		sprintf(cLOG,"分速度（m/s）%f 与曝光点距离%f",dvel, distan );
+		log += cLOG;		
+	    m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+		m_lastDistan = distan;
+        return false;
+	}
 }
 
 bool CExposure::GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &currentPT, double & delayms, double & distan )
@@ -349,86 +389,121 @@ bool CExposure::GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &c
         return false;
 	}
 }
+*/
 
 
-/*
 bool CExposure::GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &currentPT, double & delayms, double & distan )
 {
 	distan  = GetDistanFrom2Points(planeInfo.pos, currentPT.position);
 	delayms = 0;
 	///如果发现飞机开始远离拍摄点立即拍摄
-	if( distan > m_lastDistan)
+	if( distan > m_lastDistan && distan < m_expParam.distan)
 	{
+		string log = "已经远离曝光点：";
+		char cLOG[256];
+		sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f 距离%f 飞机位置 经度%f 纬度%f 速度%f 方位角%f", 
+			          currentPT.lineIndex,currentPT.pintIndex, currentPT.position.lon,currentPT.position.lat, 
+					  distan, planeInfo.pos.lon,planeInfo.pos.lat,planeInfo.vel,planeInfo.az);
+		log += cLOG;		
+	    m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+
 		m_lastDistan = 9999999;
 		return true;
 	}
 
+	///获取投影点高斯坐标
 	COORDINATE outPT;
-	GetProjectionPt( currentPT.position, planeInfo.az, planeInfo.pos, outPT);
+	GetProjectionPt( planeInfo.pos, planeInfo.az, currentPT.position , outPT);
+	double prj_X, prj_Y;
+	prj_X = outPT.lon;
+	prj_Y = outPT.lat;
 
-	double tmpdistan = GetDistanFrom2Points(planeInfo.pos, outPT);
+	///当前时刻飞机高斯坐标
+	double cpp_X, cpp_Y; 
+	m_GEGeoCaculate.BL2XY_Gauss(planeInfo.pos.lon, planeInfo.pos.lat, cpp_X, cpp_Y);
 
+	///预测下一时刻飞行点高斯坐标
 	double dvel = planeInfo.vel / 3.6;///速度，m/s
 	double nextSecDis = dvel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
+	double hAZ = GetHoriFromAZ(planeInfo.az)/180*PI;
+	double next_Y = cpp_Y + nextSecDis * sin(hAZ);
+	double next_X = cpp_X + nextSecDis * cos(hAZ);
 
-//	double delayDis   = dvel * m_expParam.delay /1000;///相机延迟时间，飞行距离(暂时不考虑)
-//  double scale = (distan - delayDis)/ nextSecDis / m_expParam.frequency ;
-
-	if( nextSecDis > tmpdistan)
+	if( isContain(cpp_X,cpp_Y, next_X, next_Y, prj_X, prj_Y) )
 	{
+		//	double delayDis   = dvel * m_expParam.delay /1000;///相机延迟时间，飞行距离(暂时不考虑)
+        //  double scale = (distan - delayDis)/ nextSecDis / m_expParam.frequency ;
+		///判断位置关系
+	    double tmpdistan = sqrt( (prj_X - cpp_X)*(prj_X - cpp_X) + (prj_Y - cpp_Y)*(prj_Y - cpp_Y) );
 		delayms = tmpdistan / nextSecDis;
+
+		string log = "精确曝光计算成功：";
+		char cLOG[256];
+		sprintf(cLOG,"分速度（m/s）%f 与曝光点距离%f",dvel, distan );
+		log += cLOG;		
+	    m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+
+		m_lastDistan = 9999999;
 		return true;
 	}
 	else
 	{
-		m_lastDistan = distan;
-        return false;
-	}
-}
-*/
+        double nextdis = GetDistanForCalcPoint(currentPT.position, planeInfo.pos, planeInfo.az, nextSecDis );
+		if( nextdis > distan && distan < m_expParam.distan )
+		{
+			string log = "下一点更将远离曝光点，立即曝光：";
+			char cLOG[256];
+			sprintf(cLOG,"航线编号%d 曝光点编号%d 经度%f 纬度%f 曝光延迟%d 距离%f 飞机位置 经度%f 纬度%f 速度%f 方位角%f", 
+				currentPT.lineIndex,currentPT.pintIndex, currentPT.position.lon,currentPT.position.lat, 
+				m_sleepmsec, distan, planeInfo.pos.lon,planeInfo.pos.lat,planeInfo.vel,planeInfo.az);
+			log += cLOG;		
+			m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
 
-/*
-bool CExposure::GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &currentPT, double & delayms, double & distan )
+			m_lastDistan = 9999999;
+		    return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	return false;
+}
+
+bool CExposure::isContain(double s_X, double s_Y, double e_X, double e_Y, double p_X, double p_Y)
 {
-	COORDINATE outPT;
-	GetProjectionPt( currentPT.position, planeInfo.az, planeInfo.pos, outPT);
-
-	distan = GetDistanFrom2Points(planeInfo.pos, outPT);
-
-	double dvel = planeInfo.vel / 3.6;///速度，m/s
-	double nextSecDis = dvel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
-
-//	double delayDis   = dvel * m_expParam.delay /1000;///相机延迟时间，飞行距离(暂时不考虑)
-//  double scale = (distan - delayDis)/ nextSecDis / m_expParam.frequency ;
-
-	if( nextSecDis > distan)
+	if((p_X > min(s_X, e_X)) && (p_X < max(s_X,e_X)) && 
+		(p_Y > min(s_Y, e_Y)) && (p_Y < max(s_Y,e_Y)))
 	{
-		delayms = distan / nextSecDis;
 		return true;
 	}
 	else
 	{
-        return false;
+		return false;
 	}
 }
-*/
-///ptA:拍摄点坐标 ptB：飞机当前点坐标 az_B:飞机当前航向
+
+///armPT:目标点坐标 ccp：飞机当前点坐标 az_B:飞机当前航向
 ///out_pt：目标点在飞行路线上的投影坐标
-void CExposure::GetProjectionPt(COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt )
+void CExposure::GetProjectionPt(COORDINATE ccp, double az_B, COORDINATE armPT,  COORDINATE &out_pt )
 {
-	double za =  GetHoriFromAZ(az_B);
+	double a_X, a_Y, b_X, b_Y;
+	m_GEGeoCaculate.BL2XY_Gauss(ccp.lon, ccp.lat, a_X, a_Y);
+	m_GEGeoCaculate.BL2XY_Gauss(armPT.lon, armPT.lat, b_X, b_Y);
+
 	double kA = tan( GetHoriFromAZ(az_B) * PI / 180 );
 	if (kA == 0) //垂线斜率不存在情况  
 	{  
-		out_pt.lon = ptA.lon;  
-		out_pt.lat = ptB.lat;  
+		out_pt.lon = a_X;  
+		out_pt.lat = b_Y;  
 	}  
 	else  
-	{  
-		out_pt.lon = (double)((kA * ptA.lon + ptB.lon / kA + ptB.lat - ptA.lat) / (1 / kA + kA));  
-		out_pt.lat = (double)(-1 / kA * (out_pt.lon - ptB.lon) + ptB.lat);  
+	{
+		out_pt.lon = (double)((kA * a_X + b_X / kA + b_Y - a_Y) / (1 / kA + kA));
+		out_pt.lat = (double)(-1 / kA * (out_pt.lon - b_X) + b_Y); 
 	}  
 }
+
 double CExposure::GetHoriFromAZ(double az_A )
 {
    if( az_A >= 90 && az_A <= 180)
@@ -441,43 +516,7 @@ double CExposure::GetHoriFromAZ(double az_A )
 	   return tmp>0?tmp:(tmp+360);
    }
 }
-/*
-void CExposure::GetProjectionPt(double az_A, COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt )
-{
-	double kA = tan( az_A );
-	double kB = tan( az_B );
-	double x0, y0;
-    if( az_A == az_B)
-	{
-		if( az_A == 90)
-		{
-			x0 = ptB.lon;
-			y0 = ptA.lat;
-		}
-		else
-		{
-			x0 = (kB*ptB.lon + ptA.lon/kA + ptA.lat - ptB.lat) / (kB + 1/kA);
-		    y0 = kB * (x0 - ptB.lon ) + ptB.lat;
-		}
-	}
-	else if( kA != kB)
-	{
-		COORDINATE cross;
-		cross.lon = (kA*ptA.lon + ptB.lat - ptA.lat - kB*ptB.lon)/(kA - kB);
-		cross.lat = kA*(cross.lon - ptA.lon) + ptA.lat;
 
-		double distan = sqrt( (ptB.lon - cross.lon) * (ptB.lon - cross.lon) + (ptB.lat - cross.lat) * (ptB.lat - cross.lat) );
-		double angle0 = abs( az_A - az_B );
-		double newX =  distan * cos( angle0 ) * cos( az_A );
-		double newY =  distan * cos( angle0 ) * sin( az_A );
-
-		x0 = newX + cross.lon ;
-		y0 = newY + cross.lat;
-	}
-	out_pt.lat = y0;
-	out_pt.lon = x0;
-}
-*/
 void CExposure::GetNextStepPt( COORDINATE ptA, double vl, double az, double freq, COORDINATE &cross )
 {
 }
@@ -531,39 +570,21 @@ double CExposure::GetDistanFrom2Points(COORDINATE ptend, COORDINATE ptstart)
 	double dx = e_X - s_X;
 	double dy = e_Y - s_Y;
 	return sqrtf(dx * dx + dy * dy);
-	/*
-	double   n = 0.0, fai = 0.0, tmp = 0.0, e2 = 0.0, f1 = 0.0;
-	double   sinf = 0.0;
-	double   geod[3];
-    geod[0]  = ptend.lat ;
-	geod[1]  = ptend.lon;
-	geod[2]  = ptend.high;
+}
 
-	if (geod[0] >PIO2 || geod[0] < -PIO2 || geod[1]>TWOPI || geod[1]<-PI )
-	{
-		return -20;
-	}
-	fai = geod[0];
-	sinf = sin(fai);
-	f1 = 1.0/EARTHE84_1F;
-	e2 = 2.0 * f1 -f1 * f1; 
-	tmp = sqrt(1.0 - e2 * sinf*sinf);
-	n =  EARTHE84_A /tmp;
-	
-	double cart[3];
-	cart[0] = (n + geod[2]) * cos(fai) *cos(geod[1]);
-	cart[1] = (n + geod[2]) * cos(fai) *sin(geod[1]);
-	cart[2] = (n *(1.0 - e2) + geod[2]) * sin(fai);
-	
-	///获取位置
-	double dis = sqrt(cart[0]*cart[0] + cart[1]*cart[1] +cart[2]*cart[2]);
+double CExposure::GetDistanForCalcPoint(COORDINATE linePt, COORDINATE cpp, double az, double distan)
+{
+	double s_X, s_Y, e_X, e_Y;
+	m_GEGeoCaculate.BL2XY_Gauss(cpp.lon, cpp.lat, e_X, e_Y);
+	double haz = GetHoriFromAZ(az);
+	e_Y = e_Y + distan * sin(haz);
+	e_X = e_X + distan * cos(haz);
 
-	double Err[2];
-	Err[0] = (float) (dis * (ptstart.lat - geod[0]));
-	Err[1] = (float) (dis * (ptstart.lon - geod[1]));
+	m_GEGeoCaculate.BL2XY_Gauss(linePt.lon, linePt.lat, s_X, s_Y);
 
-	return sqrt(Err[0]*Err[0] + Err[1]*Err[1] );
-	*/
+	double dx = e_X - s_X;
+	double dy = e_Y - s_Y;
+	return sqrtf(dx * dx + dy * dy);
 }
 
 ///添加已曝光点

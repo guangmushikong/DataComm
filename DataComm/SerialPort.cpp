@@ -38,7 +38,7 @@ CSerialPort::CSerialPort(void)
     InitializeCriticalSection(&m_csCommunicationSync);  
 	m_iBufferLen = 0;
 	m_high      = 0.0;
- 
+
 }  
  
 CSerialPort::~CSerialPort(void)  
@@ -282,13 +282,14 @@ UINT WINAPI CSerialPort::ListenThread( void* pParam )
 				//pSerialPort->FormatTrans(cRecved, &Msg);
 			    if ( !pSerialPort->FormatTrans(pSerialPort->m_cRecved, &Msg) )
 				{
-					continue;
+					//continue;
 				}
-
-				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
+				
+//				pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
 				if( Msg.msgtype == MSG_GPRMC)
 				{
 					Msg.body.position_info.pos.high = pSerialPort->m_high;
+					pSerialPort->Notify((char*)&Msg, sizeof(COMM_MESSAGE));
 					string log = "接收到最简位置数据GPRMC：";
 			        char cLOG[180];
 					sprintf(cLOG,"经度%f 纬度%f 高程%f 速度%f 方位角%f", Msg.body.position_info.pos.lon,Msg.body.position_info.pos.lat,Msg.body.position_info.pos.high,

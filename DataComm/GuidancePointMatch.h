@@ -65,6 +65,7 @@ private:
 	double getLinePlaneAngle(double _angle1, double _angle2);
 	//double getLineExposureRate(const std::vector<GuidancePoint*>& vtrGPs);
 private:
+	std::string logfile;
 	double dDistanceCriteria;
 	double dHeadingCriteria;
 	double dExposureCriteria;

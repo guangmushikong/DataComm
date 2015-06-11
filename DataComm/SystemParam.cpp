@@ -35,14 +35,30 @@ void CSystemParam::IniSysParam()
 	{
 		m_exposureParam.distan= atof( buf );
 	}
+
 	memset(buf, 0, 20);
 	num =  GetPrivateProfileStringA("EXPOSURE", "ANGLE", "", (char*)buf, 20, CONFIGFILENAME);
 	if( num > 0 )
 	{
 		m_exposureParam.angle= atof( buf );
 	}
+
     m_exposureParam.trigger =  GetPrivateProfileIntA("EXPOSURE", "TRIGGER",  0, CONFIGFILENAME);
-	m_exposureParam.frequency =  GetPrivateProfileIntA("EXPOSURE", "FREQUENCY",  0, CONFIGFILENAME);
+
+	memset(buf, 0, 20);
+	num =  GetPrivateProfileStringA("EXPOSURE", "FREQUENCY", "", (char*)buf, 20, CONFIGFILENAME);
+	if( num > 0 )
+	{
+		m_exposureParam.frequency= atof( buf );
+	}
+
+	memset(buf, 0, 20);
+	num =  GetPrivateProfileStringA("EXPOSURE", "HIGHT", "", (char*)buf, 20, CONFIGFILENAME);
+	if( num > 0 )
+	{
+		m_exposureParam.hAllow= atof( buf );
+	}
+
 	m_exposureParam.rate =  GetPrivateProfileIntA("EXPOSURE", "RATE",  0, CONFIGFILENAME);
 	m_exposureParam.rate/= 100;
 

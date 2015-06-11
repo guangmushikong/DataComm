@@ -21,5 +21,7 @@
 
 using namespace std;
 
+#pragma comment(lib, "sqlite3.lib")
+
 #define  _MS_MFC  
 // TODO: reference additional headers your program requires here

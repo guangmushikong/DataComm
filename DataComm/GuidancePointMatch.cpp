@@ -9,7 +9,7 @@
 decorateGPMatch::decorateGPMatch(IGuidancePointMatch* p)
 {
 	pGPMatch = p;
-	logfile = "c:/GPMatch.log";
+	logfile = ".\\logfile\\GPMatch.log";
 }
 
 decorateGPMatch::~decorateGPMatch()
@@ -69,6 +69,7 @@ GuidancePointMatch::GuidancePointMatch(void)
 	dExposureCriteria = 0.8;
 	//header = "01-0A1";
 	nCurrentAirLine = 1;
+	logfile = ".\\logfile\\GPMatch_Hight.log";
 }
 
 GuidancePointMatch::~GuidancePointMatch(void)
@@ -147,7 +148,10 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 
             if(std::string::npos != line.find("A1"))
             {
-				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
+				COORDINATE point; 
+				point.lon = dCoordY; 
+				point.lat = dCoordX;
+				point.high = dCoordZ;
                 pGP = new GuidancePoint(GuidancePoint::A1Type, 
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
@@ -159,7 +163,10 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
             }
             else if(std::string::npos != line.find("A2"))
             {
-				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
+				COORDINATE point; 
+				point.lon = dCoordY; 
+				point.lat = dCoordX;
+				point.high = dCoordZ;
                 pGP = new GuidancePoint(GuidancePoint::A2Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
@@ -171,7 +178,10 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
             }
             else if(std::string::npos != line.find("B1"))
             {
-				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
+				COORDINATE point;
+				point.lon = dCoordY;
+				point.lat = dCoordX;
+				point.high = dCoordZ;
                 pGP = new GuidancePoint(GuidancePoint::B1Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
@@ -182,7 +192,10 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
             }
             else if(std::string::npos != line.find("B2"))
             {
-				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
+				COORDINATE point; 
+				point.lon = dCoordY;
+				point.lat = dCoordX;
+				point.high = dCoordZ;
                 pGP = new GuidancePoint(GuidancePoint::B2Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
@@ -193,7 +206,10 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
             }
             else
             {
-				COORDINATE point; point.lon = dCoordY; point.lat = dCoordX;
+				COORDINATE point; 
+				point.lon = dCoordY;
+				point.lat = dCoordX;
+				point.high = dCoordZ;
                 pGP = new GuidancePoint(GuidancePoint::Normal,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
@@ -242,7 +258,7 @@ double GuidancePointMatch::getDistance(COORDINATE p1, COORDINATE p2)
 	cal.BL2XY_Gauss(p1.lon, p1.lat, dP1GaussX, dP1GaussY);
 	cal.BL2XY_Gauss(p2.lon, p2.lat, dP2GaussX, dP2GaussY);
 	double dx = dP1GaussX - dP2GaussX;
-	double dy = dP2GaussY - dP2GaussY;
+	double dy = dP1GaussY - dP2GaussY;
 	return sqrtf(dx*dx + dy*dy);
 }
 
@@ -492,7 +508,7 @@ int GuidancePointMatch::getMatchedLine(const GPRMC& plane)
 				double nextangle = getLineAngle(*pNextLine, plane);
 				//nextangle = abs(nextangle-plane.az);
 				nextangle = getLinePlaneAngle(nextangle, plane.az);
-
+			
 				// get current line's exposure rate
 				itRate = mapExposureLine.find(currentLineIdx);
 				if (itRate != mapExposureLine.end())
@@ -608,7 +624,6 @@ double GuidancePointMatch::getLineAngle(const std::vector<GuidancePoint*>& vtrGP
 	return angle;
 }
 
-
 bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 {
 	bool bRlt = false;
@@ -639,12 +654,28 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 				it != pVtrGPs->end(); ++it)
 			{
 				GuidancePoint* pGP = *it;
+
 				// 2015-5-8 Only Normal Type Point engage in the next procedure
 				if (GuidancePoint::Normal == pGP->type)
 				{
+					double dHight = abs(plane.pos.high - pGP->point.high);
 					pGP->resetStatus();
 					double dTmpDistance = getDistance(plane.pos, pGP->point);
-					if(dTmpDistance < dDistanceCriteria)
+
+					////log
+					time_t t = time(0);
+					char _time[64];
+					strftime(_time, sizeof(_time), "%Y-%m-%d %H:%M:%S:", localtime(&t));
+					ofstream outfile(logfile, ios::app);
+					outfile << _time << "exposure point(lineIndex: " << pGP->nLineIndex 
+						<< " "  << "PointIndex: " << pGP->nPointIndex
+						<< " "  << "dDistance: " << dTmpDistance 
+						<< " "  << "dHight: " << dHight << ")" << std::endl;
+					outfile.close();
+					////log over
+
+
+					if(dTmpDistance < dDistanceCriteria && dHight < 3 * dDistanceCriteria)
 					{
 						pGP->setAirLineMatchedStatus(true);
 						pGP->setDistanceMatchedStatus(true);

@@ -20,7 +20,9 @@ typedef struct _EXPOSURE_PARAM
 
 	double      trigger;//相机开关控制时差，单位毫秒，即打开与关闭控制器的时间差 
 
-	int         frequency;//GPS接收机频率，整数。单位：HZ，每秒生成位置数据个数
+	double      frequency;//GPS接收机频率，整数。单位：HZ，每秒生成位置数据个数
+
+	double      hAllow;////高程容差，单位米
 
 	double      rate; //曝光的百分比.代表如果某条航向曝光比率达到该值，即可切换航线
 	

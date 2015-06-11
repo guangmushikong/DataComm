@@ -12,6 +12,16 @@ CMatchAirLinePoint::CMatchAirLinePoint(void)
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 	m_hMachProcessThread = INVALID_HANDLE_VALUE;
 	m_sysParam.IniSysParam();
+/*
+	COMM_MESSAGE Msg;
+	Msg.msgtype = MSG_GPRMC;
+	Msg.body.position_info.az = 22;
+	Msg.body.position_info.vel = 17.964400;
+	Msg.body.position_info.pos.lon = 113.955038;
+	Msg.body.position_info.pos.lat = 35.440032;
+	Msg.body.position_info.pos.high = 111.3;
+
+	DataUpdate((char*)&Msg,sizeof(COMM_MESSAGE));*/
 }
 
 
