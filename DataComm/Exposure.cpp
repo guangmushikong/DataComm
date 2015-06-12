@@ -36,23 +36,23 @@ CExposure::CExposure(void)
 	CSystemParam::GetUDPParam(udpParam);
 	m_udpServer.Init(udpParam.port);
 
-/*	
+/*
 ////////TEST
 	GPRMC plane;
 	plane.time = 600001;
-	plane.az = 26.90 ;
-	plane.vel = 150.567600     ;
+	plane.az = 357.920000;
+	plane.vel = 24.224160 ;
 	plane.status = '1';
 	plane.pos.high = 111.30;
-	plane.pos.lat = 35.439273  ;//40.072800; 
-	plane.pos.lon = 113.964950  ;//116.338220;//
+	plane.pos.lat = 40.074283 ;//40.072800; 
+	plane.pos.lon = 116.344158 ;//116.338220;//
 
 	CURRENT_POINT currentPT;
 	currentPT.position.high = 36;
-	currentPT.position.lat =  35.439070 ;//40.081570;
-	currentPT.position.lon =  113.964460 ;//116.338005;//116.337880;
+	currentPT.position.lat =  40.074648 ;//40.081570;
+	currentPT.position.lon =  116.344198 ;//116.338005;//116.337880;
 	double distan2 = GetDistanFrom2Points(currentPT.position,plane.pos);
-	double distan3 = GetDistanForCalcPoint(currentPT.position,plane.pos,plane.az,plane.vel/3.6*2);
+	double distan3 = GetDistanForCalcPoint(currentPT.position,plane.pos,plane.az,plane.vel/3.6);
 
 	bool status    = false;
 	double delayms = 0.0, distan = 0.0;
@@ -426,8 +426,8 @@ bool CExposure::GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &c
 	double dvel = planeInfo.vel / 3.6;///速度，m/s
 	double nextSecDis = dvel / m_expParam.frequency ;  ///下一个位置点上报时飞行距离
 	double hAZ = GetHoriFromAZ(planeInfo.az)/180*PI;
-	double next_Y = cpp_Y + nextSecDis * sin(hAZ);
-	double next_X = cpp_X + nextSecDis * cos(hAZ);
+	double next_Y = cpp_Y + nextSecDis * cos(hAZ);
+	double next_X = cpp_X + nextSecDis * sin(hAZ);
 
 	if( isContain(cpp_X,cpp_Y, next_X, next_Y, prj_X, prj_Y) )
 	{
@@ -464,10 +464,10 @@ bool CExposure::GetExposureStatus(const GPRMC &planeInfo, const CURRENT_POINT &c
 		}
 		else
 		{
+			m_lastDistan = 9999999;
 			return false;
 		}
 	}
-	return false;
 }
 
 bool CExposure::isContain(double s_X, double s_Y, double e_X, double e_Y, double p_X, double p_Y)
@@ -491,7 +491,7 @@ void CExposure::GetProjectionPt(COORDINATE ccp, double az_B, COORDINATE armPT,  
 	m_GEGeoCaculate.BL2XY_Gauss(ccp.lon, ccp.lat, a_X, a_Y);
 	m_GEGeoCaculate.BL2XY_Gauss(armPT.lon, armPT.lat, b_X, b_Y);
 
-	double kA = tan( GetHoriFromAZ(az_B) * PI / 180 );
+	double kA = 1/tan( GetHoriFromAZ(az_B) * PI / 180 );
 	if (kA == 0) //垂线斜率不存在情况  
 	{  
 		out_pt.lon = a_X;  
@@ -576,9 +576,10 @@ double CExposure::GetDistanForCalcPoint(COORDINATE linePt, COORDINATE cpp, doubl
 {
 	double s_X, s_Y, e_X, e_Y;
 	m_GEGeoCaculate.BL2XY_Gauss(cpp.lon, cpp.lat, e_X, e_Y);
-	double haz = GetHoriFromAZ(az);
-	e_Y = e_Y + distan * sin(haz);
-	e_X = e_X + distan * cos(haz);
+	double haz = GetHoriFromAZ(az)/180*PI;
+
+	e_Y = e_Y + distan * cos(haz);
+	e_X = e_X + distan * sin(haz);
 
 	m_GEGeoCaculate.BL2XY_Gauss(linePt.lon, linePt.lat, s_X, s_Y);
 
