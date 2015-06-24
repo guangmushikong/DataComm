@@ -73,12 +73,13 @@ void CSystemParam::IniSysParam()
 	///获取UDP参数
 	m_udpParam.port = GetPrivateProfileIntA("UDP", "PORT", 0, CONFIGFILENAME);
 
+	/*
 	///获取航迹点信息
 	GP_Match = new decorateGPMatch(new GuidancePointMatch);
-	GP_Match->readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
 	GP_Match->setDistanceCriteria(m_exposureParam.distan);
 	GP_Match->setHeadingCriteria(m_exposureParam.angle);
 	GP_Match->setExposureRate( m_exposureParam.rate);
+	*/
 }
 
 void CSystemParam::GetExposurParam(EXPOSURE_PARAM &param)

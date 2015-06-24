@@ -11,7 +11,6 @@
 * @note		N/A
 */
 
-
 /**
 *	消息类型定义
 */
@@ -125,6 +124,20 @@ typedef struct _CURRENT_POINT
 	bool posingMatchFlag;
 	bool topologyMatchFlag;
 	bool airlineMatchFlag;
+
+	///偏航角
+	double  drift_angle;
+
+	///前方点距离
+	double  distance;
+
+	int PointType;
+
+	///水平误差
+	double  h_distance;
+
+	///高程误差
+	double  v_distance;
 
 }CURRENT_POINT;
 

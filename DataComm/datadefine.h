@@ -82,6 +82,7 @@ public:
 		int nPointIndex; // the sequence number
 		GuidancePointType type;
 		GuidancePointStatus GP_Status;
+		int nSequNum;
 };
 
 class ExposureRate

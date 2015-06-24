@@ -70,6 +70,8 @@ GuidancePointMatch::GuidancePointMatch(void)
 	//header = "01-0A1";
 	nCurrentAirLine = 1;
 	logfile = ".\\logfile\\GPMatch_Hight.log";
+	m_NextLnID = 1;
+    m_NextPtID = 0;
 }
 
 GuidancePointMatch::~GuidancePointMatch(void)
@@ -89,6 +91,11 @@ void GuidancePointMatch::setHeadingCriteria(double _criteria)
 void GuidancePointMatch::setExposureRate(double _criteria)
 {
 	dExposureCriteria = _criteria;
+}
+
+void GuidancePointMatch::setHeightCriteria(double _criteria)
+{
+	dHeightCriteria = _criteria;
 }
 
 void GuidancePointMatch::registerGhtFile(std::string filePath)
@@ -124,7 +131,10 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
         if(std::string::npos != line.find("AIRPORT"))
         {
             //iss.str(line);
-            //iss >> head >> dCoordX >> dCoordY >> type;
+            iss >> head >> dCoordX >> dCoordY ;
+			m_airPort.position.lon  = dCoordY;
+			m_airPort.position.lat  = dCoordX;
+			m_airPort.position.high = 0;
             //pGP = new GuidancePoint(GuidancePoint::AirPort, QPointF(dCoordY, dCoordX));
             continue;
         }
@@ -624,6 +634,45 @@ double GuidancePointMatch::getLineAngle(const std::vector<GuidancePoint*>& vtrGP
 	return angle;
 }
 
+double GuidancePointMatch::getLineAngle(const std::vector<GuidancePoint*>& vtrGPs, const int pointIdx)
+{
+	int idx = 0;
+	int preidx = 0;
+	COORDINATE start, end;
+	double angle = -1.0;
+
+	if ( vtrGPs.size() > 1 )
+	{
+		idx = pointIdx;
+		if (idx == 0)
+		{
+			preidx = 1;
+			start.lat = vtrGPs.at(idx)->point.lat;
+			start.lon = vtrGPs.at(idx)->point.lon;
+			end.lat = vtrGPs.at(preidx)->point.lat;
+			end.lon = vtrGPs.at(preidx)->point.lon;
+		}
+		else
+		{
+			preidx = idx -1;
+			end.lat = vtrGPs.at(idx)->point.lat;
+			end.lon = vtrGPs.at(idx)->point.lon;
+			start.lat = vtrGPs.at(preidx)->point.lat;
+			start.lon = vtrGPs.at(preidx)->point.lon;
+		}
+
+		if ( idx>=0 && idx<vtrGPs.size())
+		{
+			if (preidx>=0 && preidx<vtrGPs.size())
+			{
+				angle = CExposure::GetAngleFrom2Points(end, start);
+			}
+		}
+	}
+
+	return angle;
+}
+
 bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 {
 	bool bRlt = false;
@@ -649,6 +698,7 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 		//if (abs(LineHeading-plane.az) < dHeadingCriteria)
 		if (getLinePlaneAngle(LineHeading, plane.az) < dHeadingCriteria)
 		{
+			int index = 0;
 			// distance criteria
 			for (std::vector<GuidancePoint*>::iterator it = pVtrGPs->begin(); 
 				it != pVtrGPs->end(); ++it)
@@ -673,16 +723,27 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 						<< " "  << "dHight: " << dHight << ")" << std::endl;
 					outfile.close();
 					////log over
-
-
-					if(dTmpDistance < dDistanceCriteria && dHight < 3 * dDistanceCriteria)
+					
+					if(dTmpDistance < dDistanceCriteria && dHight < dHeightCriteria)
 					{
 						pGP->setAirLineMatchedStatus(true);
 						pGP->setDistanceMatchedStatus(true);
 						pGP->setHeadingMatchedStatus(true);
+						pGP->nSequNum = index;
 						vtrRltPoint.push_back(pGP);
 					}
 				}
+				else
+				{
+					pGP->resetStatus();
+					double dTmpDistance = getDistance(plane.pos, pGP->point);
+					if(dTmpDistance < dDistanceCriteria)
+					{
+						m_NextLnID = pGP->nLineIndex;
+						m_NextPtID = index + 1;
+					}
+				}
+				index++;
 			}
 		}
 
@@ -709,6 +770,9 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 					++nCurrentAirLine;
 				}
 
+				m_NextLnID = tgrGP.nLineIndex;
+				m_NextPtID = tgrGP.nSequNum + 1;
+
 				bRlt = true;
 			}
 			else
@@ -719,8 +783,56 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	}
 	else
 		bRlt = false;
-
+	
 	return bRlt;
+}
+
+bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
+{
+	std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.find(m_NextLnID);
+	if(mapGPs.end() != it)
+	{
+		std::vector<GuidancePoint*>* pVtrGPs = it->second;
+		int size = pVtrGPs->size();
+		if( m_NextPtID >= size )
+		{
+			m_NextLnID++;
+			m_NextPtID = 0;
+
+			it = mapGPs.find(m_NextLnID);
+			{
+				if(mapGPs.end() == it)
+				{
+					///拍摄完成，返回机场
+					nextGP = m_airPort;
+					nextGP.lineIndex = 1;
+					nextGP.pintIndex = 0;
+					nextGP.airline_az = 0;
+					return true;
+				}
+				pVtrGPs = it->second;
+			}
+		}
+
+		if( m_NextPtID >= pVtrGPs->size() )
+		{
+			///拍摄完成，返回机场
+			nextGP = m_airPort;
+			nextGP.lineIndex = 1;
+			nextGP.pintIndex = 0;
+		}
+
+		GuidancePoint* pGP = (*pVtrGPs)[m_NextPtID];
+		nextGP.lineIndex   = m_NextLnID;
+		nextGP.position    = pGP->point;
+		nextGP.airline_az  = getLineAngle(*pVtrGPs, m_NextPtID);
+		nextGP.PointType   = pGP->type;
+		nextGP.pintIndex   = pGP->nPointIndex;
+
+		return true;
+	}
+
+	return false;
 }
 
 double GuidancePointMatch::getRelaDistance(COORDINATE p1, COORDINATE p2, COORDINATE p)

@@ -24,7 +24,7 @@
 #include "DataProcess.h"
 #include "LogFile.h"
 
-#define MAX_BUFFER_SIZE		1024
+#define MAX_BUFFER_SIZE		10240
 using namespace std;
 /** 串口通信类  
  *     
@@ -202,7 +202,7 @@ private:
     CRITICAL_SECTION   m_csCommunicationSync;       //!< 互斥操作串口  
 
 	//临时缓存
-	char m_cRecved[1024];
+	char m_cRecved[10240];
 
 	OVERLAPPED m_osRead;
 

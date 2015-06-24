@@ -369,7 +369,7 @@ bool CSerialPort::WriteData( unsigned char* pData, unsigned int length )
 */
 void CSerialPort::DataPackage( const char *pBuffer, const int size,  char *pOutBuffer, int &iBinLen)
 {
-	if (m_iBufferLen + size > 8192)
+	if (m_iBufferLen + size > 10240)
 		m_iBufferLen = 0;
 	
 	memcpy(m_strBuffer + m_iBufferLen, pBuffer, size);

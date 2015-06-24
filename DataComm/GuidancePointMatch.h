@@ -40,9 +40,11 @@ public:
 	
 	void readGuidancePoint(std::string filepath);
 	bool getMatchedGP(GuidancePoint& tgrGP, GPRMC plane);
+	bool getNextGP( CURRENT_POINT& nextGP );
 	void setDistanceCriteria(double _criteria);
 	void setHeadingCriteria(double _criteria);
 	void setExposureRate(double _criteria);
+	void setHeightCriteria(double _criteria);
 
 private:
 	int  getMatchedLine(const GPRMC& plane);
@@ -61,6 +63,7 @@ private:
 	void GetProjectionPt(COORDINATE ptA, double az_B, COORDINATE ptB,  COORDINATE &out_pt );
 	void initExposureRate();
 	double getLineAngle(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane);
+	double getLineAngle(const std::vector<GuidancePoint*>& vtrGPs, const int pointIdx);
 	double getLineDistance(const std::vector<GuidancePoint*>& vtrGPs, const GPRMC& plane);
 	double getLinePlaneAngle(double _angle1, double _angle2);
 	//double getLineExposureRate(const std::vector<GuidancePoint*>& vtrGPs);
@@ -69,13 +72,18 @@ private:
 	double dDistanceCriteria;
 	double dHeadingCriteria;
 	double dExposureCriteria;
+	double dHeightCriteria;
 	int nCurrentAirLine;
 	//std::string strPointIndex; // A1/A2/B1/B2/number
 	//std::string header;
 	//OGRPoint centerPoint; // used to set Gauss Projection param
 	GuidancePoint currentGP;
+	CURRENT_POINT m_airPort;
 	std::map<int, std::vector<GuidancePoint*>* > mapGPs;
 	std::map<int, ExposureRate> mapExposureLine;
+
+	int m_NextLnID;
+	int m_NextPtID;
 	//GaussProjection* pGaussProj;
 };
 

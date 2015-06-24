@@ -36,21 +36,25 @@ CExposure::CExposure(void)
 	CSystemParam::GetUDPParam(udpParam);
 	m_udpServer.Init(udpParam.port);
 
+	m_lineIndex = 0;
+
+	m_pointIndex = 0;
+
 /*
 ////////TEST
 	GPRMC plane;
 	plane.time = 600001;
-	plane.az = 357.920000;
-	plane.vel = 24.224160 ;
+	plane.az = 59.300000;
+	plane.vel = 103.156400   ;
 	plane.status = '1';
 	plane.pos.high = 111.30;
-	plane.pos.lat = 40.074283 ;//40.072800; 
-	plane.pos.lon = 116.344158 ;//116.338220;//
+	plane.pos.lat = 39.864312   ;//40.072800; 
+	plane.pos.lon = 116.209853  ;//116.338220;//
 
 	CURRENT_POINT currentPT;
 	currentPT.position.high = 36;
-	currentPT.position.lat =  40.074648 ;//40.081570;
-	currentPT.position.lon =  116.344198 ;//116.338005;//116.337880;
+	currentPT.position.lat =  39.864340  ;//40.081570;
+	currentPT.position.lon =  116.209580  ;//116.338005;//116.337880;
 	double distan2 = GetDistanFrom2Points(currentPT.position,plane.pos);
 	double distan3 = GetDistanForCalcPoint(currentPT.position,plane.pos,plane.az,plane.vel/3.6);
 
@@ -123,6 +127,8 @@ CExposure::CExposure(void)
 	currentPT.position.lat = 45.4566;
 	currentPT.position.lon = 123.234;
 	currentPT.position.high = 23.1;
+	currentPT.h_distance = 345.324;
+	currentPT.v_distance = 43;
 	CSqliteManger::GetInstance()->InsertExposure(pMsg,currentPT);
 	*/
 }
@@ -212,18 +218,53 @@ bool CExposure::OpenDataProcessThread()
     return true;  
 }
 
+void CExposure::InitPoint(CURRENT_POINT &PT)
+{
+	PT.lineIndex = 0.0;
+	PT.pintIndex = 0.0;
+	PT.distance = 0.0;
+	PT.airline_az = 0.0;
+	PT.drift_angle = 0.0;
+	PT.position.lat  = 0.0;
+	PT.position.lon  = 0.0;
+	PT.position.high = 0.0;
+}
+
 void CExposure::SendToUDP(GPRMC pt, char status)
 {
+	CURRENT_POINT nextPT;
+	m_pGlobalAirLine->GetNextPiont( nextPT );
+
+	if(nextPT.lineIndex <= 0 || nextPT.pintIndex < 0)
+	{
+		InitPoint(nextPT);
+	}
+
 	string msg;
 	pt.status = status;
+	nextPT.distance = GetDistanFrom2Points(nextPT.position, pt.pos);
+	nextPT.drift_angle = GetHoriFromAZ(GetAngleFrom2Points(nextPT.position, pt.pos));
+	nextPT.drift_angle = nextPT.drift_angle - pt.az;
 	if(status == '1' )
 	{
-		m_dataProcess.PackGPRMC(&pt, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
+		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lineIndex, m_pointIndex);
+
 	}
 	else
 	{
-		m_dataProcess.PackGPRMC(&pt, msg);
+		if(nextPT.position.high < 0)
+		{
+		    nextPT.position.high = 0.0;
+		}
+		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lineIndex, m_pointIndex);
 	}
+
+	string log = "发送UDP数据：";
+	char cLOG[256];
+	sprintf(cLOG,"前方点信息 航线编号%d 点编号%d 距离%f 偏航角%f", 
+		nextPT.lineIndex, nextPT.pintIndex, nextPT.distance, nextPT.drift_angle);
+	log += cLOG;
+	m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
 
 	m_udpServer.SendData(msg.c_str(),msg.size());
 }
@@ -236,7 +277,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	currentPT.status = false;
 
 	///已经曝光过了
-	if( GetExposurePointStatus(currentPT.lineIndex, currentPT.pintIndex) )
+	if( currentPT.lineIndex <= 0 || currentPT.pintIndex <= 0|| GetExposurePointStatus(currentPT.lineIndex, currentPT.pintIndex) )
 	{
 	    SendToUDP(pt,'0');
 		return false;
@@ -267,6 +308,9 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	}
 	else
 	{
+		currentPT.h_distance = distan;
+		currentPT.v_distance = abs( pt.pos.high - currentPT.position.high);
+
 		m_sleepmsec = delayms / m_expParam.frequency * 1000;
 		SetEvent(m_hEvtExposure);
 
@@ -285,6 +329,8 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 
 		///向UDP发送曝光状态
 		m_lastTargetPT.status = true;
+		m_lineIndex = currentPT.lineIndex;
+        m_pointIndex = currentPT.pintIndex;
 		SendToUDP(pt, '1');
 	}
 	return true;
@@ -675,7 +721,11 @@ UINT WINAPI CExposure::ListenThread( void* pParam )
 		case WAIT_OBJECT_0:
 			{
 				ResetEvent(pSerialPort->m_hEvtExposure);
-				Sleep(pSerialPort->m_sleepmsec);
+				if( pSerialPort->m_sleepmsec >= 150 )
+				{
+					Sleep(pSerialPort->m_sleepmsec);
+				}
+				
 				unsigned char flag[16];
 				memcpy(flag, "1              6", 16);
 				pSerialPort->m_ExposurePort.WriteData(flag, 16);

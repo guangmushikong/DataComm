@@ -17,5 +17,7 @@ public:
 	void UnPackGPRMC( const string &data, GPRMC *pMsg );
 
     ///打包位置数据发送给界面
-	void PackGPRMC( const GPRMC *pMsg, string &data, int lineIndex =0 , int pointIndex = 0 );
+	void PackGPRMC( const GPRMC *pMsg, const CURRENT_POINT * nextPT, string &data, int lineIndex =0 , int pointIndex = 0 );
+
+	string GetPointString( int pointType, int pointIndex );
 };

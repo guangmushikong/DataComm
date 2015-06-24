@@ -64,7 +64,9 @@ bool CSqliteManger::InitDatabase()
 					   line_lon    NUMERIC(10),\
 					   line_hgt    NUMERIC(10),\
 					   line_index  INTEGER,\
-					   point_index INTEGER );";
+					   point_index INTEGER,\
+					   H_Distance  NUMERIC(10),\
+					   V_Distance  NUMERIC(10));";
 
 	nRes = sqlite3_exec(m_pDB, strSqlExp.c_str(), 0, 0, &cErrMsg);
 	if(nRes != SQLITE_OK)
@@ -112,7 +114,7 @@ bool CSqliteManger::InsertExposure(GPRMC posInfo,CURRENT_POINT ExpInfo)
 {
 	string strInsExp = "INSERT INTO Exposure( \
 					        DataTime, gpsTime, longitude, latitude, hight, velocity, azimuth, \
-							line_lon, line_lat, line_hgt, line_index, point_index )  \
+							line_lon, line_lat, line_hgt, line_index, point_index, H_Distance, V_Distance )  \
 						VALUES ( '";
 	char strTM[80];
 	CLogFile *pFile;
@@ -120,11 +122,13 @@ bool CSqliteManger::InsertExposure(GPRMC posInfo,CURRENT_POINT ExpInfo)
 	strInsExp += strTM;
 	strInsExp += "'";
 	char cPos[180];
-	sprintf(cPos,",%f, %f, %f, %f, %f ,%f, %f, %f, %f, %d, %d);", 
+	sprintf(cPos,",%f, %f, %f, %f, %f ,%f, %f, %f, %f, %d, %d, %f, %f);", 
 		         posInfo.time,     posInfo.pos.lon, posInfo.pos.lat,
 				 posInfo.pos.high, posInfo.vel,     posInfo.az,
 				 ExpInfo.position.lon, ExpInfo.position.lat, ExpInfo.position.high,
-				 ExpInfo.lineIndex,    ExpInfo.pintIndex);
+				 ExpInfo.lineIndex,    ExpInfo.pintIndex, 
+				 ExpInfo.h_distance,   ExpInfo.v_distance);
+
 	strInsExp += cPos;
 
 	char * cErrMsg;

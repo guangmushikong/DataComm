@@ -230,42 +230,105 @@ void CDataProcess::UnPackGPRMC( const string &data, GPRMC *pMsg )
 	}
 }
 
-void CDataProcess::PackGPRMC( const GPRMC *pMsg,  string &data ,int lineIndex, int pointIndex)
+void CDataProcess::PackGPRMC( const GPRMC *pMsg, const CURRENT_POINT * nextPT, string &data ,int lineIndex, int pointIndex)
 {
-	char tmp[20];
+	char tmp[30];
 	sprintf(tmp, "tm:%6f", pMsg->time);
 	data = tmp;
 
-	memset(tmp, 0, 20);
+	memset(tmp, 0, 30);
 	sprintf(tmp, ",lon:%6f", pMsg->pos.lon);
 	data += tmp;
 
-	memset(tmp, 0, 20);
+	memset(tmp, 0, 30);
 	sprintf(tmp, ",lat:%6f", pMsg->pos.lat);
 	data += tmp;
 
-	memset(tmp, 0, 20);
+	memset(tmp, 0, 30);
 	sprintf(tmp, ",hgt:%f", pMsg->pos.high);
 	data += tmp;
 
-	memset(tmp, 0, 20);
+	memset(tmp, 0, 30);
 	sprintf(tmp, ",vel:%f", pMsg->vel);
 	data += tmp;
 
-	memset(tmp, 0, 20);
+	memset(tmp, 0, 30);
 	sprintf(tmp, ",az:%f", pMsg->az);
 	data += tmp;
 
 	data += ",status:";
 	data += pMsg->status;
 
-	memset(tmp, 0, 20);
+	memset(tmp, 0, 30);
 	sprintf(tmp, ",lineIndex:%d", lineIndex);
 	data += tmp;
 
-	memset(tmp, 0, 20);
+	memset(tmp, 0, 30);
 	sprintf(tmp, ",pointIndex:%d", pointIndex);
 	data += tmp;
 
+	memset(tmp, 0, 30);
+	sprintf(tmp, ",FlineIndex:%d", nextPT->lineIndex);
+	data += tmp;
+
+	string strIndexF = GetPointString(nextPT->PointType, nextPT->pintIndex);
+	data += ",FpointIndex:%s";
+	data += strIndexF;
+
+	memset(tmp, 0, 30);
+	sprintf(tmp, ",Flon:%6f", nextPT->position.lon);
+	data += tmp;
+
+	memset(tmp, 0, 30);
+	sprintf(tmp, ",Flat:%6f", nextPT->position.lat);
+	data += tmp;
+
+	memset(tmp, 0, 30);
+	sprintf(tmp, ",Fhgt:%6f", nextPT->position.high);
+	data += tmp;
+
+	memset(tmp, 0, 30);
+	sprintf(tmp, ",AOY:%6f", nextPT->drift_angle);
+	data += tmp;
+
+	memset(tmp, 0, 30);
+	sprintf(tmp, ",Distan:%6f", nextPT->distance);
+	data += tmp;
+
+	memset(tmp, 0, 30);
+	sprintf(tmp, ",DesignAZ:%6f", nextPT->airline_az);
+	data += tmp;
+
 	data += '\0';
+}
+
+string CDataProcess::GetPointString( int pointType, int pointIndex )
+{
+	string strIndex;
+	switch(pointType)
+	{
+	case 1 :
+		strIndex = 'A1';
+		break;
+	case 2 :
+		strIndex = 'A2';
+		break;
+	case 3 :
+		strIndex = 'B1';
+		break;
+	case 4 :
+		strIndex = 'B2';
+		break;
+	case 5 :
+		{
+	        char tmp[10];
+	        sprintf(tmp, "tm:%d", pointIndex);
+		    strIndex = tmp;
+			break;
+		}
+	default :
+		strIndex = '0';
+		break;
+	}
+	return strIndex;
 }

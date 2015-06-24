@@ -7,7 +7,7 @@
 #include "DataContainer.h"
 #include "GlobalAirLine.h"
 #include "SystemParam.h"
-
+#include "GuidancePointMatch.h"
 
 //class CSystemParam;
 
@@ -50,5 +50,9 @@ public:
     static bool s_bExitMatch; 
 
 	CDataContainer<string*> *m_pContainer;
+
+	GuidancePointMatch m_gpMatch;
+
+	EXPOSURE_PARAM m_param;
 };
 

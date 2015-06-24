@@ -76,6 +76,8 @@ public:
 	bool GetExposurePointStatus(int lineIndex, int pointIndex);
 
 	int JoinInt(int front,int back);
+
+	void InitPoint(CURRENT_POINT &PT);
 ////串口监听
 public:
 	 /** 开启监听线程  
@@ -156,5 +158,9 @@ private:
 	CLogFile  *m_pFile;
 
 	std::list<int>  m_pointList;
+
+	int m_lineIndex;
+
+	int m_pointIndex;
 };
 

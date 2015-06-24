@@ -3,6 +3,7 @@
 
 CGlobalAirLine * CGlobalAirLine::m_globalAirLine = NULL;
 CURRENT_POINT CGlobalAirLine::m_CurrentPiontInfo;
+CURRENT_POINT CGlobalAirLine::m_NextPiontInfo;
 CGlobalAirLine::CGlobalAirLine(void)
 {
 }
@@ -39,6 +40,24 @@ void CGlobalAirLine::SetCurrentPiont(const CURRENT_POINT curPT)
     EnterCriticalSection(&m_csCommunicationSync);  
 
 	m_CurrentPiontInfo = curPT;
+
+	    /** 离开临界区 */   
+    LeaveCriticalSection(&m_csCommunicationSync);  
+}
+
+///获取前方点信息
+void CGlobalAirLine::GetNextPiont(CURRENT_POINT &nextPT)
+{
+	nextPT = m_NextPiontInfo;
+}
+
+///设置前方点信息
+void CGlobalAirLine::SetNextPiont(const CURRENT_POINT nextPT)
+{
+	/** 临界区保护 */   
+    EnterCriticalSection(&m_csCommunicationSync);  
+
+	m_NextPiontInfo = nextPT;
 
 	    /** 离开临界区 */   
     LeaveCriticalSection(&m_csCommunicationSync);  

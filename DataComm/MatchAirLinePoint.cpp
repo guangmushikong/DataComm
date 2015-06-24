@@ -11,7 +11,18 @@ CMatchAirLinePoint::CMatchAirLinePoint(void)
 	m_hEvtsMatchThread = CreateEvent(NULL, TRUE, FALSE, NULL);
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 	m_hMachProcessThread = INVALID_HANDLE_VALUE;
-	m_sysParam.IniSysParam();
+
+	CSystemParam::GetExposurParam(m_param);
+	m_gpMatch.setDistanceCriteria(m_param.distan);
+	m_gpMatch.setExposureRate(m_param.rate);
+	m_gpMatch.setHeadingCriteria(m_param.angle);
+	m_gpMatch.setHeightCriteria(m_param.hAllow);
+	m_gpMatch.readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
+
+		CURRENT_POINT nextGP;
+	m_gpMatch.getNextGP( nextGP );
+	m_pGlobalAirLine->SetNextPiont( nextGP );
+
 /*
 	COMM_MESSAGE Msg;
 	Msg.msgtype = MSG_GPRMC;
@@ -128,12 +139,17 @@ void CMatchAirLinePoint::MatchCurrentAirLinePT(const GPRMC position)
 	//m_pGlobalAirLine->SetCurrentPiont(cP);
 	GuidancePoint gp;
 	CURRENT_POINT cp;
-	CSystemParam::getMatchedGP(gp, position);
+//	CSystemParam::getMatchedGP(gp, position);
+	m_gpMatch.getMatchedGP(gp, position);
 	cp.position = gp.point;
 	cp.lineIndex = gp.nLineIndex;
 	cp.pintIndex = gp.nPointIndex;
+	cp.PointType = gp.type;
 	cp.distanceMatchFlag = gp.getDistanceMatchedStatus();
 	cp.airlineMatchFlag = gp.getAirLineMatchedStatus();
 	cp.headingMatchFlag = gp.getHeadingMatchedStatus();
-	m_pGlobalAirLine->SetCurrentPiont(cp);	
+	m_pGlobalAirLine->SetCurrentPiont(cp);
+	CURRENT_POINT nextGP;
+	m_gpMatch.getNextGP( nextGP );
+	m_pGlobalAirLine->SetNextPiont( nextGP );
 }
