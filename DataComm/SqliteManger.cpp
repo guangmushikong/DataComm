@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "SqliteManger.h"
 #include "LogFile.h"
+#include "SystemParam.h"
 
 CSqliteManger * CSqliteManger::m_SqliteMange = NULL;
 
@@ -22,7 +23,11 @@ CSqliteManger * CSqliteManger::GetInstance()
 
 bool CSqliteManger::InitDatabase()
 {
-	int nRes = sqlite3_open(DATABASENAME, &m_pDB);
+	Task_Info taskInfo;
+	CSystemParam::GetTaskInfo(taskInfo);
+	string DBName = taskInfo.output_path  + taskInfo.task_name + DATABASENAME;
+
+	int nRes = sqlite3_open(DBName.c_str(), &m_pDB);
 	if( nRes !=SQLITE_OK )
 	{
 		cout<<"Open database fail"<<sqlite3_errmsg(m_pDB);

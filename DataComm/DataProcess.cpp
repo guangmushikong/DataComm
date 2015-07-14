@@ -302,24 +302,24 @@ void CDataProcess::PackGPRMC( const GPRMC *pMsg, const CURRENT_POINT * nextPT, s
 	data += '\0';
 }
 
-string CDataProcess::GetPointString( int pointType, int pointIndex )
+string CDataProcess::GetPointString( GuidancePointType pointType, int pointIndex )
 {
 	string strIndex;
 	switch(pointType)
 	{
-	case 1 :
+	case GuidancePointType::A1Type :
 		strIndex = 'A1';
 		break;
-	case 2 :
+	case GuidancePointType::A2Type :
 		strIndex = 'A2';
 		break;
-	case 3 :
+	case GuidancePointType::B1Type :
 		strIndex = 'B1';
 		break;
-	case 4 :
+	case GuidancePointType::B2Type :
 		strIndex = 'B2';
 		break;
-	case 5 :
+	case GuidancePointType::Normal :
 		{
 	        char tmp[10];
 	        sprintf(tmp, "tm:%d", pointIndex);

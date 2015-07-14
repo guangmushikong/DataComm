@@ -9,6 +9,7 @@ COMM_PARAM CSystemParam::m_cameraCommParam;
 COMM_PARAM CSystemParam::m_gpsCommParam;
 decorateGPMatch* CSystemParam::GP_Match = 0;
 UDP_PARAM CSystemParam::m_udpParam;
+Task_Info CSystemParam::m_taskInfo;
 
 CSystemParam::CSystemParam(void)
 {
@@ -73,6 +74,7 @@ void CSystemParam::IniSysParam()
 	///获取UDP参数
 	m_udpParam.port = GetPrivateProfileIntA("UDP", "PORT", 0, CONFIGFILENAME);
 
+	ReadTaskInfo();
 	/*
 	///获取航迹点信息
 	GP_Match = new decorateGPMatch(new GuidancePointMatch);
@@ -100,6 +102,27 @@ void CSystemParam::GetGpsCommParam(COMM_PARAM &param)
 void CSystemParam::GetUDPParam(UDP_PARAM &param)
 {
 	param = m_udpParam;
+}
+
+void CSystemParam::ReadTaskInfo( )
+{
+	char buf[FILE_NAME_LEN];
+    int num = 0;
+    num =  GetPrivateProfileStringA("TaskDesign", "TaskName", "", (char*)buf, FILE_NAME_LEN, CONFIG_TASK_PATH_NAME);
+	m_taskInfo.task_name = buf;
+
+	memset(buf, 0, FILE_NAME_LEN);
+	num =  GetPrivateProfileStringA("TaskDesign", "Input", "", (char*)buf, FILE_NAME_LEN, CONFIG_TASK_PATH_NAME);
+	m_taskInfo.ght_path = buf;
+
+	memset(buf, 0, FILE_NAME_LEN);
+	num =  GetPrivateProfileStringA("TaskDesign", "Output", "", (char*)buf, FILE_NAME_LEN, CONFIG_TASK_PATH_NAME);
+	m_taskInfo.output_path = buf;
+}
+
+void CSystemParam::GetTaskInfo(Task_Info &taskInfo)
+{
+	taskInfo = m_taskInfo;
 }
 //void CSystemParam::getNextGPHead(const std::string& _head, std::string& nextHead)
 //{

@@ -40,6 +40,8 @@ CExposure::CExposure(void)
 
 	m_pointIndex = 0;
 
+	m_pintType = AirPort;
+
 /*
 ////////TEST
 	GPRMC plane;
@@ -220,8 +222,8 @@ bool CExposure::OpenDataProcessThread()
 
 void CExposure::InitPoint(CURRENT_POINT &PT)
 {
-	PT.lineIndex = 0.0;
-	PT.pintIndex = 0.0;
+	PT.lineIndex = 0;
+	PT.pintIndex = 0;
 	PT.distance = 0.0;
 	PT.airline_az = 0.0;
 	PT.drift_angle = 0.0;
@@ -239,7 +241,16 @@ void CExposure::SendToUDP(GPRMC pt, char status)
 	{
 		InitPoint(nextPT);
 	}
-
+	else
+	{
+		if( (nextPT.PointType == Normal || nextPT.PointType == B1Type ) && m_lastTargetPT.PointType == Normal )
+		{
+			if( !m_lastTargetPT.status )
+			{
+				nextPT = m_lastTargetPT;
+			}
+		}
+	}
 	string msg;
 	pt.status = status;
 	nextPT.distance = GetDistanFrom2Points(nextPT.position, pt.pos);
@@ -247,7 +258,7 @@ void CExposure::SendToUDP(GPRMC pt, char status)
 	nextPT.drift_angle = nextPT.drift_angle - pt.az;
 	if(status == '1' )
 	{
-		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lineIndex, m_pointIndex);
+		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
 
 	}
 	else
@@ -256,7 +267,7 @@ void CExposure::SendToUDP(GPRMC pt, char status)
 		{
 		    nextPT.position.high = 0.0;
 		}
-		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lineIndex, m_pointIndex);
+		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
 	}
 
 	string log = "·¢ËÍUDPÊý¾Ý£º";
@@ -303,6 +314,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 					  distan, pt.pos.lon,pt.pos.lat,pt.vel,pt.az);
 		log += cLOG;
 		m_pFile->GetInstance()->WriteLog(log.c_str(), log.length());
+		m_lastTargetPT.status = false;
 		SendToUDP(pt,'0');
 		return false;
 	}

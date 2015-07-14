@@ -2,16 +2,23 @@
 #include "LogFile.h"
 #include <time.h>
 #include <iostream>
-
+#include "SystemParam.h"
 
 CLogFile * CLogFile::m_LogFile = NULL;
 CLogFile::CLogFile(void):m_bOpen(FALSE)
 {
 	//初始化同步变量
 	InitializeCriticalSection(&m_LogSec);
+	
+	Task_Info taskInfo;
+	CSystemParam::GetTaskInfo(taskInfo);
+	//创建output
+	CreateDirectoryA(taskInfo.output_path.c_str(), NULL);
+	//创建task目录
+	m_FilePath = taskInfo.output_path + taskInfo.task_name;
+	CreateDirectoryA(m_FilePath.c_str(), NULL);
 
-    m_FileName = LOGPATH;
-	m_FileName += LOGNAME;
+    m_FileName = m_FilePath + LOGNAME;
 }
 
 CLogFile::~CLogFile(void)
@@ -34,13 +41,12 @@ BOOL CLogFile::Open()
 {
 	try
 	{
-		//创建文件目录
-        CreateDirectoryA(LOGPATH, NULL);
-	
 		if( (m_pFile = fopen(m_FileName.c_str(),"a")) == NULL )
 		{
-			std::cout << "日志文件创建失败" ; 
+			std::cout << "工作目录创建失败，请确认Output路径是否正确：" ; 
+			m_bOpen = false;
 		}
+
 		m_bOpen = true;
 	}
 	catch(...)

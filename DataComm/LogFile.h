@@ -15,8 +15,8 @@
 #define  CAT_LENGTH		    3
 
 //定义日志路径
-#define  LOGPATH    ".\\logfile\\" 
-#define  LOGNAME    "DataComm.log"
+#define  LOGPATH    ".\\Output\\" 
+#define  LOGNAME    "\\DataComm.log"
 
 #pragma once
 class CLogFile
@@ -96,6 +96,8 @@ private:
 	
 	//存放文件名			
 	string		m_FileName;
+
+	string      m_FilePath;
 	
 	//判断文件是否打开的变量
 	BOOL		m_bOpen;
