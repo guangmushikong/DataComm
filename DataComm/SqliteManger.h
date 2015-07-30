@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#define  DATABASENAME  ".\\DataInfo.db"
+#define  DATABASENAME  "\\DataInfo.db"
 
 
 class CSqliteManger
@@ -22,6 +22,10 @@ public:
 	sqlite3 *m_pDB;
 
 	static CSqliteManger * m_SqliteMange;
+
+	string		m_FileName;
+
+	string      m_FilePath;
 public:
 	///初始化数据库
 	bool InitDatabase();

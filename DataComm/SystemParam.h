@@ -7,8 +7,11 @@
  
 #define CONFIG_AIRLINE_PATH_NAME ".\\config\\kkk.ght"
 
+#define CONFIG_TASK_PATH_NAME ".\\config\\TaskDesign.ini"
+
 #define CONFIGFILENAME  ".\\config\\Datacom.cfg"
 
+#define FILE_NAME_LEN  512
 ///曝光控制参数
 typedef struct _EXPOSURE_PARAM
 {
@@ -41,6 +44,17 @@ typedef struct _UDP_PARAM
 {
 	int		port;//串口号
 }UDP_PARAM;
+
+///UDP通信
+typedef struct _TASK_INFO
+{
+	std::string ght_path; ///设计文件位置
+
+	std::string output_path;///输出路径
+
+	std::string task_name;///任务名称
+
+}Task_Info;
 
 class CSystemParam
 {
@@ -95,10 +109,14 @@ public:
 	 */ 
 	static void GetUDPParam(UDP_PARAM &param);
 
+	static void ReadTaskInfo();
+
+	static void GetTaskInfo(Task_Info &taskInfo);
+	/*
 	static void getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	{
 		GP_Match->getMatchedGP(tgrGP, plane);
-	}
+	}*/
 private:
 	static  EXPOSURE_PARAM      m_exposureParam;//曝光参数
 
@@ -112,5 +130,7 @@ private:
 	static decorateGPMatch* GP_Match;
 
 	static UDP_PARAM m_udpParam;
+
+	static Task_Info m_taskInfo;
 };
 

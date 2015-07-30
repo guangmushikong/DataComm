@@ -69,9 +69,13 @@ GuidancePointMatch::GuidancePointMatch(void)
 	dExposureCriteria = 0.8;
 	//header = "01-0A1";
 	nCurrentAirLine = 1;
-	logfile = ".\\logfile\\GPMatch_Hight.log";
 	m_NextLnID = 1;
     m_NextPtID = 0;
+	m_bFlagOver = false;
+
+	Task_Info taskInfo;
+	CSystemParam::GetTaskInfo(taskInfo);
+	logfile = LOGPATH + taskInfo.task_name + "\\GPMatch.log";
 }
 
 GuidancePointMatch::~GuidancePointMatch(void)
@@ -162,7 +166,7 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 				point.lon = dCoordY; 
 				point.lat = dCoordX;
 				point.high = dCoordZ;
-                pGP = new GuidancePoint(GuidancePoint::A1Type, 
+                pGP = new GuidancePoint(A1Type, 
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
@@ -177,7 +181,7 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 				point.lon = dCoordY; 
 				point.lat = dCoordX;
 				point.high = dCoordZ;
-                pGP = new GuidancePoint(GuidancePoint::A2Type,
+                pGP = new GuidancePoint(A2Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
@@ -192,7 +196,7 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 				point.lon = dCoordY;
 				point.lat = dCoordX;
 				point.high = dCoordZ;
-                pGP = new GuidancePoint(GuidancePoint::B1Type,
+                pGP = new GuidancePoint(B1Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
@@ -206,7 +210,7 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 				point.lon = dCoordY;
 				point.lat = dCoordX;
 				point.high = dCoordZ;
-                pGP = new GuidancePoint(GuidancePoint::B2Type,
+                pGP = new GuidancePoint(B2Type,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
@@ -220,7 +224,7 @@ void GuidancePointMatch::registerGhtFile(std::string filePath)
 				point.lon = dCoordY;
 				point.lat = dCoordX;
 				point.high = dCoordZ;
-                pGP = new GuidancePoint(GuidancePoint::Normal,
+                pGP = new GuidancePoint(Normal,
 #ifndef _MS_MFC
 										QPointF(dCoordY, dCoordX),
 #else
@@ -706,12 +710,12 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 				GuidancePoint* pGP = *it;
 
 				// 2015-5-8 Only Normal Type Point engage in the next procedure
-				if (GuidancePoint::Normal == pGP->type)
+				if (GuidancePointType::Normal == pGP->type)
 				{
 					double dHight = abs(plane.pos.high - pGP->point.high);
 					pGP->resetStatus();
 					double dTmpDistance = getDistance(plane.pos, pGP->point);
-
+/*
 					////log
 					time_t t = time(0);
 					char _time[64];
@@ -723,7 +727,7 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 						<< " "  << "dHight: " << dHight << ")" << std::endl;
 					outfile.close();
 					////log over
-					
+*/					
 					if(dTmpDistance < dDistanceCriteria && dHight < dHeightCriteria)
 					{
 						pGP->setAirLineMatchedStatus(true);
@@ -784,11 +788,34 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	else
 		bRlt = false;
 	
+	if (bRlt)
+	{
+		time_t t = time(0);
+		char _time[64];
+		strftime(_time, sizeof(_time), "%Y-%m-%d %H:%M:%S:", localtime(&t));
+		ofstream outfile(logfile, ios::app);
+		outfile << _time << "exposure point(lineIndex: " << tgrGP.nLineIndex 
+			<< " "  << "PointIndex: " << tgrGP.nPointIndex
+			<< " "  << "lon: " << tgrGP.point.lon
+			<< " "  << "lat: " << tgrGP.point.lat << ")" << std::endl;
+		outfile.close();
+	}
 	return bRlt;
 }
 
 bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 {
+	///如果已经拍摄完成
+	if( m_bFlagOver )
+	{
+		nextGP = m_airPort;
+		nextGP.lineIndex = 1;
+		nextGP.pintIndex = 0;
+		nextGP.airline_az = 0;
+		nextGP.PointType = AirPort;
+		return true;
+	}
+
 	std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.find(m_NextLnID);
 	if(mapGPs.end() != it)
 	{
@@ -808,6 +835,8 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 					nextGP.lineIndex = 1;
 					nextGP.pintIndex = 0;
 					nextGP.airline_az = 0;
+					nextGP.PointType = GuidancePointType::AirPort;
+					m_bFlagOver = true;
 					return true;
 				}
 				pVtrGPs = it->second;
@@ -820,6 +849,10 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 			nextGP = m_airPort;
 			nextGP.lineIndex = 1;
 			nextGP.pintIndex = 0;
+			nextGP.airline_az = 0;
+			nextGP.PointType = AirPort;
+			m_bFlagOver = true;
+			return true;
 		}
 
 		GuidancePoint* pGP = (*pVtrGPs)[m_NextPtID];
@@ -831,8 +864,17 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 
 		return true;
 	}
-
-	return false;
+	else
+	{
+		///拍摄完成，返回机场
+		nextGP = m_airPort;
+		nextGP.lineIndex = 1;
+		nextGP.pintIndex = 0;
+		nextGP.airline_az = 0;
+		nextGP.PointType = GuidancePointType::AirPort;
+		m_bFlagOver = true;
+		return false;
+	}
 }
 
 double GuidancePointMatch::getRelaDistance(COORDINATE p1, COORDINATE p2, COORDINATE p)

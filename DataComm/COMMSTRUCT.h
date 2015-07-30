@@ -25,7 +25,15 @@ enum  COMM_MSGTYPE
 	MSG_GPRMC
 };
 
-
+enum GuidancePointType
+{
+	AirPort,
+	A1Type,
+	A2Type,
+	B1Type,
+	B2Type,
+	Normal
+};
 typedef struct _COORDINATE
 {
 	///经度，单位度，东经为正，西经为负
@@ -36,6 +44,7 @@ typedef struct _COORDINATE
     
 	///海拔高度，单位米
 	double   high;
+
 }COORDINATE;
 
 typedef struct _GPGGA
@@ -131,13 +140,24 @@ typedef struct _CURRENT_POINT
 	///前方点距离
 	double  distance;
 
-	int PointType;
+	GuidancePointType PointType;
 
 	///水平误差
 	double  h_distance;
 
 	///高程误差
 	double  v_distance;
+
+	_CURRENT_POINT()
+	{
+		status = false;
+		lineIndex = 0;
+        pintIndex = 0;
+		airline_az = 0.0;
+		PointType = AirPort;
+		h_distance = 0.0;
+        v_distance = 0.0;
+	}
 
 }CURRENT_POINT;
 

@@ -84,6 +84,8 @@ private:
 
 	int m_NextLnID;
 	int m_NextPtID;
+
+	bool m_bFlagOver;
 	//GaussProjection* pGaussProj;
 };
 

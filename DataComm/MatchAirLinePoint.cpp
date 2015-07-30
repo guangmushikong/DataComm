@@ -17,9 +17,12 @@ CMatchAirLinePoint::CMatchAirLinePoint(void)
 	m_gpMatch.setExposureRate(m_param.rate);
 	m_gpMatch.setHeadingCriteria(m_param.angle);
 	m_gpMatch.setHeightCriteria(m_param.hAllow);
-	m_gpMatch.readGuidancePoint(CONFIG_AIRLINE_PATH_NAME);
 
-		CURRENT_POINT nextGP;
+	Task_Info taskInfo;
+	CSystemParam::GetTaskInfo(taskInfo);
+	m_gpMatch.readGuidancePoint(taskInfo.ght_path);
+
+	CURRENT_POINT nextGP;
 	m_gpMatch.getNextGP( nextGP );
 	m_pGlobalAirLine->SetNextPiont( nextGP );
 

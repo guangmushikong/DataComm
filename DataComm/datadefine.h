@@ -43,15 +43,7 @@ private:
 class GuidancePoint
 {
 public:
-	enum GuidancePointType
-	{
-		AirPort,
-		A1Type,
-		A2Type,
-		B1Type,
-		B2Type,
-		Normal
-	};
+
 #ifdef _MS_MFC
 	GuidancePoint();
 	GuidancePoint(GuidancePointType t, COORDINATE p, int lIndex=0, int pIndex=0);

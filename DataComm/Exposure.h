@@ -162,5 +162,9 @@ private:
 	int m_lineIndex;
 
 	int m_pointIndex;
+
+	GuidancePointType m_pintType;
+
+	bool m_bStaus;
 };
 
