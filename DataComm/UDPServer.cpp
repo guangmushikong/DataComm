@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 #include "UDPServer.h"
+#include <process.h> 
 
 #define IP "127.0.0.1"
 #define Port 16000
@@ -14,6 +15,13 @@ struct UdpHeartPack {
 
 CUDPServer::CUDPServer(void)
 {
+	m_bExitFlag = false;
+	m_hListenThread = INVALID_HANDLE_VALUE;
+
+	EXPOSURE_PARAM  param;
+	CSystemParam::GetExposurParam(param);
+	memset(m_strConfig, 0, sizeof(m_strConfig));
+	sprintf(m_strConfig, "status:config,distance:%f,height:%f", param.distan, param.hAllow);
 }
 
 
@@ -45,6 +53,18 @@ bool CUDPServer::Init( int port )
 	m_saUdpServ.sin_addr.s_addr = htonl ( INADDR_BROADCAST );
 	m_saUdpServ.sin_port = htons (port);  
 
+	///监听server
+	sockaddr_in local;
+
+	local.sin_addr.s_addr = INADDR_ANY;
+	local.sin_family =  AF_INET;
+	local.sin_port = htons(port);
+
+	m_ServerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	int iR = bind(m_ServerSocket, (struct sockaddr *)&local, sizeof(sockaddr_in));
+
+	m_lastSYSStatus = SYS_Spiral;
+	OpenListenThread();
 	return 0;
 }
 
@@ -60,3 +80,77 @@ void CUDPServer::Exit()
 	closesocket(m_sockListener); 
 	WSACleanup();
 }
+
+UINT WINAPI CUDPServer::RecieveData(void* pParam)
+{
+	 /** 得到本类的指针 */   
+    CUDPServer *pUDPServe = reinterpret_cast<CUDPServer*>(pParam);  
+	sockaddr_in from;
+    int fromlen = sizeof(sockaddr_in);
+	while(1)
+	{
+		char buffer[512] = "\0";
+
+		printf("waiting message form client:");
+		if(SOCKET_ERROR != recvfrom(pUDPServe->m_ServerSocket, buffer, sizeof(buffer), 0, (struct sockaddr *)&from, &fromlen ))
+		{ 
+			if( pUDPServe->m_bExitFlag )
+			{
+				printf("client quit!\n");
+				break;
+			}
+			if( strlen(buffer) > 3)
+			{
+				continue;
+			}
+			printf("recieve message form %s -- %s \n",	inet_ntoa(from.sin_addr), buffer);
+			if(  strcmp( buffer, "#0") == 0 )
+			{
+				CSystemParam::SetSystemStatus(SYS_Normal);
+				printf("曝光模式\n");
+			}
+			else if(  strcmp( buffer, "#1") == 0 )
+			{
+				CSystemParam::SetSystemStatus(SYS_ShootMiss);
+				printf("补拍模式\n");
+			}
+			else if(  strcmp( buffer, "#2") == 0 )
+			{
+				CSystemParam::SetSystemStatus(SYS_Spiral);
+				printf("盘旋模式\n");
+			}
+			else if(  strcmp( buffer, "#3") == 0 )
+			{
+				CSystemParam::SetSystemStatus(SYS_BackAirport);
+				printf("返航模式\n");
+			}
+			else if(  strcmp( buffer, "#4") == 0 )///申请配置命令
+			{
+				pUDPServe->SendData(pUDPServe->m_strConfig, sizeof(pUDPServe->m_strConfig));
+				printf("申请配置命令\n");
+			}
+		}
+	} 
+	return 0;
+}
+
+bool CUDPServer::OpenListenThread()  
+{  
+    /** 检测线程是否已经开启了 */   
+    if (m_hListenThread != INVALID_HANDLE_VALUE)  
+    {  
+        /** 线程已经开启 */   
+        return false;  
+    }  
+ 
+    /** 线程ID */   
+    UINT threadId;  
+    /** 开启串口数据监听线程 */   
+    m_hListenThread = (HANDLE)_beginthreadex(NULL, 0, RecieveData, this, 0, &threadId);  
+    if (!m_hListenThread)  
+    {  
+        return false;  
+    }  
+ 
+    return true;  
+} 

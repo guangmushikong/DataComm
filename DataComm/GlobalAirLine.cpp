@@ -4,6 +4,8 @@
 CGlobalAirLine * CGlobalAirLine::m_globalAirLine = NULL;
 CURRENT_POINT CGlobalAirLine::m_CurrentPiontInfo;
 CURRENT_POINT CGlobalAirLine::m_NextPiontInfo;
+list<int>  CGlobalAirLine::m_pointList;
+
 CGlobalAirLine::CGlobalAirLine(void)
 {
 }
@@ -67,12 +69,59 @@ void CGlobalAirLine::SetNextPiont(const CURRENT_POINT nextPT)
 void CGlobalAirLine::SetPointStatus(int lineIndex, int pintIndex, bool status)
 {
 	/** 临界区保护 */   
-    EnterCriticalSection(&m_csCommunicationSync);  
+//    EnterCriticalSection(&m_csCommunicationSync);  
 
 	if( m_CurrentPiontInfo.lineIndex  ==lineIndex && m_CurrentPiontInfo.pintIndex )
 	{
 		m_CurrentPiontInfo.status = status;
 	}
 	    /** 离开临界区 */   
+//    LeaveCriticalSection(&m_csCommunicationSync);
+}
+
+///添加已拍摄拍摄点
+void CGlobalAirLine::SetExposurePoint(int lineIndex, int pointIndex )
+{
+	/** 临界区保护 */   
+    EnterCriticalSection(&m_csCommunicationSync);  
+
+	if( lineIndex > 0 && pointIndex > 0 )
+	{
+		int newint = JoinInt(lineIndex, pointIndex );
+		m_pointList.push_back(newint);
+	}
+
+	 /** 离开临界区 */   
     LeaveCriticalSection(&m_csCommunicationSync);
+}
+
+///获取曝光点是否曝光状态
+bool CGlobalAirLine::GetExposurePointStatus(int lineIndex, int pointIndex)
+{
+	if( lineIndex > 0 && pointIndex > 0 )
+	{
+		int newint = JoinInt(lineIndex, pointIndex );
+		std::list<int>::iterator iter = m_pointList.begin();
+		for( ; iter != m_pointList.end(); iter++ )
+		{
+			if( *iter == newint )
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+int CGlobalAirLine::JoinInt(int front,int back)
+{ 
+	int nResult = 0; 
+	char sBuf[20] = {'\0'};
+	sprintf(sBuf, "%d%d", front, back);
+	nResult = atoi(sBuf);
+	return nResult;
 }

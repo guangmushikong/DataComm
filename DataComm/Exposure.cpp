@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <sstream>
 #include "SqliteManger.h"
+#include "GlobalAirLine.h"
 
 using namespace std;
 using std::stringstream;
@@ -235,39 +236,50 @@ void CExposure::InitPoint(CURRENT_POINT &PT)
 void CExposure::SendToUDP(GPRMC pt, char status)
 {
 	CURRENT_POINT nextPT;
-	m_pGlobalAirLine->GetNextPiont( nextPT );
-
-	if(nextPT.lineIndex <= 0 || nextPT.pintIndex < 0)
+	string msg;
+	if( CSystemParam::GetSystemStatus() == SYS_ShootMiss)
 	{
 		InitPoint(nextPT);
+		pt.status = status;
+	    m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
 	}
 	else
 	{
-		if( (nextPT.PointType == Normal || nextPT.PointType == B1Type ) && m_lastTargetPT.PointType == Normal )
+		m_pGlobalAirLine->GetNextPiont( nextPT );
+
+		if(nextPT.lineIndex <= 0 || nextPT.pintIndex < 0)
 		{
-			if( !m_lastTargetPT.status )
+			InitPoint(nextPT);
+		}
+		else
+		{
+			if( (nextPT.PointType == Normal || nextPT.PointType == B1Type ) && m_lastTargetPT.PointType == Normal )
 			{
-				nextPT = m_lastTargetPT;
+				if( !m_lastTargetPT.status )
+				{
+					nextPT = m_lastTargetPT;
+				}
 			}
 		}
-	}
-	string msg;
-	pt.status = status;
-	nextPT.distance = GetDistanFrom2Points(nextPT.position, pt.pos);
-	nextPT.drift_angle = GetHoriFromAZ(GetAngleFrom2Points(nextPT.position, pt.pos));
-	nextPT.drift_angle = nextPT.drift_angle - pt.az;
-	if(status == '1' )
-	{
-		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
 
-	}
-	else
-	{
-		if(nextPT.position.high < 0)
+		pt.status = status;
+		nextPT.distance = GetDistanFrom2Points(nextPT.position, pt.pos);
+		nextPT.drift_angle = GetHoriFromAZ(GetAngleFrom2Points(nextPT.position, pt.pos));
+		nextPT.drift_angle = nextPT.drift_angle - pt.az;
+
+		if(status == '1' )
 		{
-		    nextPT.position.high = 0.0;
+			m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
+
 		}
-		m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
+		else
+		{
+			if(nextPT.position.high < 0)
+			{
+				nextPT.position.high = 0.0;
+			}
+			m_dataProcess.PackGPRMC(&pt, &nextPT, msg, m_lastTargetPT.lineIndex, m_lastTargetPT.pintIndex);
+		}
 	}
 
 	string log = "发送UDP数据：";
@@ -282,6 +294,12 @@ void CExposure::SendToUDP(GPRMC pt, char status)
 
 bool CExposure::IsNeedExposure(GPRMC pt)
 {
+	if(CSystemParam::GetSystemStatus() == SYS_BackAirport || CSystemParam::GetSystemStatus() == SYS_Spiral)
+	{
+	    SendToUDP(pt,'0');
+		return false;
+	}
+
 	m_pGlobalAirLine = CGlobalAirLine::GetInstance();
 	CURRENT_POINT currentPT;
 	m_pGlobalAirLine->GetCurrentPiont( currentPT );
@@ -327,6 +345,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 		SetEvent(m_hEvtExposure);
 
 		AddExposurePoint(currentPT.lineIndex, currentPT.pintIndex);
+		CGlobalAirLine::GetInstance()->SetExposurePoint(currentPT.lineIndex, currentPT.pintIndex);
 		///记录日志
 		string log = "完成曝光：";
 		char cLOG[256];

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <fstream>
 #include <time.h>
+#include "GlobalAirLine.h"
 
 decorateGPMatch::decorateGPMatch(IGuidancePointMatch* p)
 {
@@ -391,7 +392,7 @@ int GuidancePointMatch::binaryMatchedLine(const GPRMC& plane, int beginLineIdx, 
 		else
 		{
 			int _begin = endLineIdx/2;
-			if (endLineIdx/2 == beginLineIdx || 1 == (endLineIdx-beginLineIdx))
+			if ( (endLineIdx + beginLineIdx ) / 2 == beginLineIdx || 1 == (endLineIdx-beginLineIdx))
 			{
 				_begin = (beginLineIdx+1);
 			}
@@ -680,84 +681,167 @@ double GuidancePointMatch::getLineAngle(const std::vector<GuidancePoint*>& vtrGP
 bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 {
 	bool bRlt = false;
-	//OGRPoint _plane(plane.pos.lon, plane.pos.lat);
-	COORDINATE pStart;
-	COORDINATE pEnd;
-	double LineHeading = -1.0;
-
-	//int nMatchedLine = getMatchedLine(plane, 1);
-	int nMatchedLine = getMatchedLine(plane);
-	if (-1 != nMatchedLine)
+	if( CSystemParam::GetSystemStatus() == SYS_BackAirport )
 	{
-		nCurrentAirLine = nMatchedLine;
+		return bRlt;
 	}
-
-	std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.find(nCurrentAirLine);
-	if(mapGPs.end() != it)
+	else if( CSystemParam::GetSystemStatus() == SYS_Normal && !m_bFlagOver  )
 	{
-		std::vector<GuidancePoint*> vtrRltPoint;
-		std::vector<GuidancePoint*>* pVtrGPs = it->second;
+		//OGRPoint _plane(plane.pos.lon, plane.pos.lat);
+		COORDINATE pStart;
+		COORDINATE pEnd;
+		double LineHeading = -1.0;
 
-		LineHeading = getLineAngle(*pVtrGPs, plane);
-		//if (abs(LineHeading-plane.az) < dHeadingCriteria)
-		if (getLinePlaneAngle(LineHeading, plane.az) < dHeadingCriteria)
+		//int nMatchedLine = getMatchedLine(plane, 1);
+		int nMatchedLine = getMatchedLine(plane);
+		if (-1 != nMatchedLine)
 		{
-			int index = 0;
-			// distance criteria
-			for (std::vector<GuidancePoint*>::iterator it = pVtrGPs->begin(); 
-				it != pVtrGPs->end(); ++it)
-			{
-				GuidancePoint* pGP = *it;
+			nCurrentAirLine = nMatchedLine;
+		}
 
-				// 2015-5-8 Only Normal Type Point engage in the next procedure
-				if (GuidancePointType::Normal == pGP->type)
+		std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.find(nCurrentAirLine);
+		if(mapGPs.end() != it)
+		{
+			std::vector<GuidancePoint*> vtrRltPoint;
+			std::vector<GuidancePoint*>* pVtrGPs = it->second;
+
+			LineHeading = getLineAngle(*pVtrGPs, plane);
+			//if (abs(LineHeading-plane.az) < dHeadingCriteria)
+			if (getLinePlaneAngle(LineHeading, plane.az) < dHeadingCriteria)
+			{
+				int index = 0;
+				// distance criteria
+				for (std::vector<GuidancePoint*>::iterator it = pVtrGPs->begin(); 
+					it != pVtrGPs->end(); ++it)
 				{
-					double dHight = abs(plane.pos.high - pGP->point.high);
-					pGP->resetStatus();
-					double dTmpDistance = getDistance(plane.pos, pGP->point);
-/*
-					////log
-					time_t t = time(0);
-					char _time[64];
-					strftime(_time, sizeof(_time), "%Y-%m-%d %H:%M:%S:", localtime(&t));
-					ofstream outfile(logfile, ios::app);
-					outfile << _time << "exposure point(lineIndex: " << pGP->nLineIndex 
-						<< " "  << "PointIndex: " << pGP->nPointIndex
-						<< " "  << "dDistance: " << dTmpDistance 
-						<< " "  << "dHight: " << dHight << ")" << std::endl;
-					outfile.close();
-					////log over
-*/					
-					if(dTmpDistance < dDistanceCriteria && dHight < dHeightCriteria)
+					GuidancePoint* pGP = *it;
+
+					// 2015-5-8 Only Normal Type Point engage in the next procedure
+					if (GuidancePointType::Normal == pGP->type)
 					{
-						pGP->setAirLineMatchedStatus(true);
-						pGP->setDistanceMatchedStatus(true);
-						pGP->setHeadingMatchedStatus(true);
-						pGP->nSequNum = index;
-						vtrRltPoint.push_back(pGP);
+						double dHight = abs(plane.pos.high - pGP->point.high);
+						pGP->resetStatus();
+						double dTmpDistance = getDistance(plane.pos, pGP->point);
+
+						if(dTmpDistance < dDistanceCriteria && dHight < dHeightCriteria)
+						{
+							pGP->setAirLineMatchedStatus(true);
+							pGP->setDistanceMatchedStatus(true);
+							pGP->setHeadingMatchedStatus(true);
+							pGP->nSequNum = index;
+							vtrRltPoint.push_back(pGP);
+						}
 					}
+					else
+					{
+						pGP->resetStatus();
+						double dTmpDistance = getDistance(plane.pos, pGP->point);
+						if(dTmpDistance < dDistanceCriteria)
+						{
+							m_NextLnID = pGP->nLineIndex;
+							m_NextPtID = index + 1;
+						}
+					}
+					index++;
+				}
+			}
+
+			if (vtrRltPoint.size() > 0)
+			{
+				// posing criteria
+
+				// topology criteria
+
+				// get optimal GP
+				int GPIdx = getOptimalGP(vtrRltPoint, plane);
+				if (GPIdx < vtrRltPoint.size())
+				{
+					GuidancePoint* pOptimalGP = vtrRltPoint.at(GPIdx);
+					tgrGP = *pOptimalGP;
+
+					if (!tgrGP.getExposureStatus())
+					{
+						++(mapExposureLine.find(nCurrentAirLine)->second.exposurePointNum);
+					}
+
+					if (std::string::npos != tgrGP.pointHeader.find("B1"))
+					{
+						++nCurrentAirLine;
+					}
+
+					m_NextLnID = tgrGP.nLineIndex;
+					m_NextPtID = tgrGP.nSequNum + 1;
+
+					bRlt = true;
 				}
 				else
 				{
-					pGP->resetStatus();
-					double dTmpDistance = getDistance(plane.pos, pGP->point);
-					if(dTmpDistance < dDistanceCriteria)
-					{
-						m_NextLnID = pGP->nLineIndex;
-						m_NextPtID = index + 1;
-					}
+					bRlt = false;
 				}
-				index++;
 			}
+			else
+			{
+				bRlt = false;
+			}
+		}
+		else
+		{
+			bRlt = false;
+		}
+	}
+	else
+	{
+		//OGRPoint _plane(plane.pos.lon, plane.pos.lat);
+		COORDINATE pStart;
+		COORDINATE pEnd;
+		double LineHeading = -1.0;
+
+		std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.begin();
+		std::vector<GuidancePoint*> vtrRltPoint;
+		while(mapGPs.end() != it)
+		{
+			std::vector<GuidancePoint*>* pVtrGPs = it->second;
+
+			LineHeading = getLineAngle(*pVtrGPs, plane);
+			
+			//if (abs(LineHeading-plane.az) < dHeadingCriteria)
+			if (getLinePlaneAngle(LineHeading, plane.az) < dHeadingCriteria)
+			{
+				int index = 0;
+				// distance criteria
+				for (std::vector<GuidancePoint*>::iterator it = pVtrGPs->begin(); 
+					it != pVtrGPs->end(); ++it)
+				{
+					GuidancePoint* pGP = *it;
+
+					if( CGlobalAirLine::GetInstance()->GetExposurePointStatus(pGP->nLineIndex, pGP->nPointIndex) )
+					{
+						continue;
+					}
+					// 2015-5-8 Only Normal Type Point engage in the next procedure
+					if (GuidancePointType::Normal == pGP->type)
+					{
+						double dHight = abs(plane.pos.high - pGP->point.high);
+						pGP->resetStatus();
+						double dTmpDistance = getDistance(plane.pos, pGP->point);
+
+						if(dTmpDistance < dDistanceCriteria && dHight < dHeightCriteria)
+						{
+							pGP->setAirLineMatchedStatus(true);
+							pGP->setDistanceMatchedStatus(true);
+							pGP->setHeadingMatchedStatus(true);
+							pGP->nSequNum = index;
+							vtrRltPoint.push_back(pGP);
+						}
+					}
+					index++;
+				}
+			}
+			it++;
 		}
 
 		if (vtrRltPoint.size() > 0)
 		{
-			// posing criteria
-
-			// topology criteria
-
-			// get optimal GP
 			int GPIdx = getOptimalGP(vtrRltPoint, plane);
 			if (GPIdx < vtrRltPoint.size())
 			{
@@ -774,20 +858,19 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 					++nCurrentAirLine;
 				}
 
-				m_NextLnID = tgrGP.nLineIndex;
-				m_NextPtID = tgrGP.nSequNum + 1;
-
 				bRlt = true;
 			}
 			else
+			{
 				bRlt = false;
+			}
 		}
 		else
+		{
 			bRlt = false;
+		}
 	}
-	else
-		bRlt = false;
-	
+
 	if (bRlt)
 	{
 		time_t t = time(0);
@@ -800,13 +883,14 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 			<< " "  << "lat: " << tgrGP.point.lat << ")" << std::endl;
 		outfile.close();
 	}
+
 	return bRlt;
 }
 
 bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 {
 	///如果已经拍摄完成
-	if( m_bFlagOver )
+	if( m_bFlagOver || CSystemParam::GetSystemStatus() == SYS_BackAirport)
 	{
 		nextGP = m_airPort;
 		nextGP.lineIndex = 1;
@@ -814,6 +898,10 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 		nextGP.airline_az = 0;
 		nextGP.PointType = AirPort;
 		return true;
+	}
+	else if( CSystemParam::GetSystemStatus() == SYS_ShootMiss)
+	{
+		return false;
 	}
 
 	std::map<int, std::vector<GuidancePoint*>* >::iterator it = mapGPs.find(m_NextLnID);
@@ -873,7 +961,7 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 		nextGP.airline_az = 0;
 		nextGP.PointType = GuidancePointType::AirPort;
 		m_bFlagOver = true;
-		return false;
+		return true;
 	}
 }
 

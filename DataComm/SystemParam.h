@@ -56,6 +56,14 @@ typedef struct _TASK_INFO
 
 }Task_Info;
 
+enum System_Status
+{
+	SYS_Spiral = 0,
+	SYS_Normal,
+	SYS_ShootMiss,
+	SYS_BackAirport
+};
+
 class CSystemParam
 {
 public:
@@ -112,6 +120,10 @@ public:
 	static void ReadTaskInfo();
 
 	static void GetTaskInfo(Task_Info &taskInfo);
+
+	static System_Status GetSystemStatus();
+
+	static void SetSystemStatus(const System_Status sysStatus);
 	/*
 	static void getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	{
@@ -132,5 +144,8 @@ private:
 	static UDP_PARAM m_udpParam;
 
 	static Task_Info m_taskInfo;
+
+	///ϵͳ״̬
+	static System_Status m_sysStatus;
 };
 
