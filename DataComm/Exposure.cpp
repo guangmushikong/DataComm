@@ -236,6 +236,13 @@ void CExposure::InitPoint(CURRENT_POINT &PT)
 void CExposure::SendToUDP(GPRMC pt, char status)
 {
 	CURRENT_POINT nextPT;
+	m_pGlobalAirLine->GetNextPiont( nextPT );
+	if(nextPT.lineIndex > 0 || nextPT.pintIndex >= 0)
+	{
+		//存储前方点
+		CSqliteManger::GetInstance()->InsertFrontPointInfo(nextPT);
+	}
+
 	string msg;
 	if( CSystemParam::GetSystemStatus() == SYS_ShootMiss)
 	{
@@ -245,8 +252,6 @@ void CExposure::SendToUDP(GPRMC pt, char status)
 	}
 	else
 	{
-		m_pGlobalAirLine->GetNextPiont( nextPT );
-
 		if(nextPT.lineIndex <= 0 || nextPT.pintIndex < 0)
 		{
 			InitPoint(nextPT);
@@ -306,7 +311,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 	currentPT.status = false;
 
 	///已经曝光过了
-	if( currentPT.lineIndex <= 0 || currentPT.pintIndex <= 0|| GetExposurePointStatus(currentPT.lineIndex, currentPT.pintIndex) )
+	if( currentPT.lineIndex <= 0 || currentPT.pintIndex <= 0 || CGlobalAirLine::GetInstance()->GetExposurePointStatus(currentPT.lineIndex, currentPT.pintIndex) )
 	{
 	    SendToUDP(pt,'0');
 		return false;
@@ -344,7 +349,7 @@ bool CExposure::IsNeedExposure(GPRMC pt)
 		m_sleepmsec = delayms / m_expParam.frequency * 1000;
 		SetEvent(m_hEvtExposure);
 
-		AddExposurePoint(currentPT.lineIndex, currentPT.pintIndex);
+		//AddExposurePoint(currentPT.lineIndex, currentPT.pintIndex);
 		CGlobalAirLine::GetInstance()->SetExposurePoint(currentPT.lineIndex, currentPT.pintIndex);
 		///记录日志
 		string log = "完成曝光：";

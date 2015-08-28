@@ -3,6 +3,8 @@
 #include "sqlite3.h"
 #include <iostream>
 #include "COMMSTRUCT.h"
+#include "SystemParam.h"
+#include "SQLiteWrapper.h"
 
 using namespace std;
 
@@ -26,6 +28,10 @@ public:
 	string		m_FileName;
 
 	string      m_FilePath;
+
+	SQLiteWrapper m_sqliteWrapper;
+
+	string m_strDBName;
 public:
 	///初始化数据库
 	bool InitDatabase();
@@ -33,5 +39,11 @@ public:
 	bool InsertPosition(GPRMC posInfo);
 	///插入曝光信息
 	bool InsertExposure(GPRMC posInfo,CURRENT_POINT ExpInfo);
+
+	bool InsertFrontPointInfo(CURRENT_POINT ExpInfo);
+	///插入系统状态
+	bool InsertSystemStatus(System_Status status);
+
+	bool InitSysFromDB();
 };
 

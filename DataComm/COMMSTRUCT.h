@@ -122,6 +122,9 @@ typedef struct _CURRENT_POINT
 	///拍摄点编号;
 	int pintIndex;
 
+	///点序号
+	int sequence;
+
 	///是否已拍摄完成
 	bool status;
 	 
@@ -157,6 +160,7 @@ typedef struct _CURRENT_POINT
 		PointType = AirPort;
 		h_distance = 0.0;
         v_distance = 0.0;
+		sequence = 0;
 	}
 
 }CURRENT_POINT;

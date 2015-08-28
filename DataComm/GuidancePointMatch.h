@@ -40,7 +40,7 @@ public:
 	
 	void readGuidancePoint(std::string filepath);
 	bool getMatchedGP(GuidancePoint& tgrGP, GPRMC plane);
-	bool getNextGP( CURRENT_POINT& nextGP );
+	bool getNextGP( CURRENT_POINT& nextGP);
 	void setDistanceCriteria(double _criteria);
 	void setHeadingCriteria(double _criteria);
 	void setExposureRate(double _criteria);

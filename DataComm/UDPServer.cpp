@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "UDPServer.h"
 #include <process.h> 
+#include "SqliteManger.h"
 
 #define IP "127.0.0.1"
 #define Port 16000
@@ -103,32 +104,39 @@ UINT WINAPI CUDPServer::RecieveData(void* pParam)
 			{
 				continue;
 			}
+			System_Status statusType;
 			printf("recieve message form %s -- %s \n",	inet_ntoa(from.sin_addr), buffer);
 			if(  strcmp( buffer, "#0") == 0 )
 			{
 				CSystemParam::SetSystemStatus(SYS_Normal);
+				statusType = SYS_Normal;
 				printf("ÆØ¹âÄ£Ê½\n");
 			}
 			else if(  strcmp( buffer, "#1") == 0 )
 			{
 				CSystemParam::SetSystemStatus(SYS_ShootMiss);
+				statusType = SYS_ShootMiss;
 				printf("²¹ÅÄÄ£Ê½\n");
 			}
 			else if(  strcmp( buffer, "#2") == 0 )
 			{
 				CSystemParam::SetSystemStatus(SYS_Spiral);
+				statusType = SYS_Spiral;
 				printf("ÅÌÐýÄ£Ê½\n");
 			}
 			else if(  strcmp( buffer, "#3") == 0 )
 			{
 				CSystemParam::SetSystemStatus(SYS_BackAirport);
+				statusType = SYS_BackAirport;
 				printf("·µº½Ä£Ê½\n");
 			}
 			else if(  strcmp( buffer, "#4") == 0 )///ÉêÇëÅäÖÃÃüÁî
 			{
 				pUDPServe->SendData(pUDPServe->m_strConfig, sizeof(pUDPServe->m_strConfig));
+				statusType = SYS_NULL;
 				printf("ÉêÇëÅäÖÃÃüÁî\n");
 			}
+			CSqliteManger::GetInstance()->InsertSystemStatus(statusType);
 		}
 	} 
 	return 0;

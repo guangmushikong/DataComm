@@ -20,6 +20,9 @@ private:
 	///前方点
 	static CURRENT_POINT m_NextPiontInfo;
 
+	///
+	static std::map<int, int> m_ExposureLine;
+
 	///已拍摄点列表
 	static list<int>  m_pointList;
 
@@ -48,5 +51,8 @@ public:
 	bool GetExposurePointStatus(int lineIndex, int pointIndex);
 
 	int  JoinInt(int front,int back);
+
+    ///获取航线曝光点个数
+	int GetExposureRateLine(const int lineIndex);
 };
 

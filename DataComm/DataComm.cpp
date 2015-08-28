@@ -19,6 +19,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	CSystemParam  param;
 	param.IniSysParam();
 
+	///从数据库中读取初始化信息
+	CSqliteManger::GetInstance()->InitDatabase();
+	CSqliteManger::GetInstance()->InitSysFromDB();
+
 	COMM_PARAM commParam;
 	param.GetGpsCommParam(commParam);
 	CLogFile *pFile;
@@ -42,8 +46,6 @@ int _tmain(int argc, _TCHAR* argv[])
     {  
         std::cout << "OpenListenThread success !" << std::endl;  
     }  
-
-	CSqliteManger::GetInstance()->InitDatabase();
    
 	///曝光处理对象
 	CExposure exposure;

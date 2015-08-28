@@ -69,9 +69,21 @@ GuidancePointMatch::GuidancePointMatch(void)
 	dHeadingCriteria = 20.0;
 	dExposureCriteria = 0.8;
 	//header = "01-0A1";
-	nCurrentAirLine = 1;
-	m_NextLnID = 1;
-    m_NextPtID = 0;
+
+	CURRENT_POINT nextPT;
+	CGlobalAirLine::GetInstance()->GetNextPiont(nextPT);
+	if(nextPT.lineIndex < 1)
+	{
+		nCurrentAirLine = 1;
+		m_NextLnID = 1;
+		m_NextPtID = 0;
+	}
+	else
+	{
+		nCurrentAirLine = nextPT.lineIndex;
+		m_NextLnID = nextPT.lineIndex;
+		m_NextPtID = nextPT.sequence;
+	}
 	m_bFlagOver = false;
 
 	Task_Info taskInfo;
@@ -887,7 +899,7 @@ bool GuidancePointMatch::getMatchedGP(GuidancePoint& tgrGP, GPRMC plane)
 	return bRlt;
 }
 
-bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
+bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP)
 {
 	///如果已经拍摄完成
 	if( m_bFlagOver || CSystemParam::GetSystemStatus() == SYS_BackAirport)
@@ -897,6 +909,7 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 		nextGP.pintIndex = 0;
 		nextGP.airline_az = 0;
 		nextGP.PointType = AirPort;
+		nextGP.sequence  = m_NextPtID;
 		return true;
 	}
 	else if( CSystemParam::GetSystemStatus() == SYS_ShootMiss)
@@ -924,6 +937,7 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 					nextGP.pintIndex = 0;
 					nextGP.airline_az = 0;
 					nextGP.PointType = GuidancePointType::AirPort;
+					nextGP.sequence  = m_NextPtID;
 					m_bFlagOver = true;
 					return true;
 				}
@@ -939,6 +953,7 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 			nextGP.pintIndex = 0;
 			nextGP.airline_az = 0;
 			nextGP.PointType = AirPort;
+			nextGP.sequence   = m_NextPtID;
 			m_bFlagOver = true;
 			return true;
 		}
@@ -949,7 +964,7 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 		nextGP.airline_az  = getLineAngle(*pVtrGPs, m_NextPtID);
 		nextGP.PointType   = pGP->type;
 		nextGP.pintIndex   = pGP->nPointIndex;
-
+		nextGP.sequence    = m_NextPtID;
 		return true;
 	}
 	else
@@ -960,6 +975,7 @@ bool GuidancePointMatch::getNextGP( CURRENT_POINT& nextGP )
 		nextGP.pintIndex = 0;
 		nextGP.airline_az = 0;
 		nextGP.PointType = GuidancePointType::AirPort;
+		nextGP.sequence    = m_NextPtID;
 		m_bFlagOver = true;
 		return true;
 	}
@@ -1038,9 +1054,9 @@ void GuidancePointMatch::initExposureRate()
 	{
 		int lindIdx = it->first;
 		ExposureRate rate;
-		rate.exposurePointNum = 0;
+		rate.exposurePointNum = CGlobalAirLine::GetInstance()->GetExposureRateLine( lindIdx);
 		// 2015-5-8 Only Normal Type Point engage in the calculation of exposure rate
-		rate.totalPointNum = (it->second->size()-4);
+		rate.totalPointNum = ( it->second->size() - 4 );
 		mapExposureLine.insert(make_pair(lindIdx, rate));
 	}
 }

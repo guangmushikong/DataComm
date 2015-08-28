@@ -10,7 +10,7 @@ COMM_PARAM CSystemParam::m_gpsCommParam;
 decorateGPMatch* CSystemParam::GP_Match = 0;
 UDP_PARAM CSystemParam::m_udpParam;
 Task_Info CSystemParam::m_taskInfo;
-System_Status CSystemParam::m_sysStatus = SYS_Normal;
+System_Status CSystemParam::m_sysStatus = SYS_Spiral;
 
 CSystemParam::CSystemParam(void)
 {

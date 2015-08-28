@@ -5,6 +5,7 @@ CGlobalAirLine * CGlobalAirLine::m_globalAirLine = NULL;
 CURRENT_POINT CGlobalAirLine::m_CurrentPiontInfo;
 CURRENT_POINT CGlobalAirLine::m_NextPiontInfo;
 list<int>  CGlobalAirLine::m_pointList;
+std::map<int, int> CGlobalAirLine::m_ExposureLine;
 
 CGlobalAirLine::CGlobalAirLine(void)
 {
@@ -48,7 +49,7 @@ void CGlobalAirLine::SetCurrentPiont(const CURRENT_POINT curPT)
 }
 
 ///获取前方点信息
-void CGlobalAirLine::GetNextPiont(CURRENT_POINT &nextPT)
+void CGlobalAirLine::GetNextPiont(CURRENT_POINT &nextPT )
 {
 	nextPT = m_NextPiontInfo;
 }
@@ -89,6 +90,18 @@ void CGlobalAirLine::SetExposurePoint(int lineIndex, int pointIndex )
 	{
 		int newint = JoinInt(lineIndex, pointIndex );
 		m_pointList.push_back(newint);
+
+		///添加航线已曝光点个数
+		std::map<int, int>::iterator itRate = m_ExposureLine.find( lineIndex);
+		if ( itRate != m_ExposureLine.end() )
+		{
+			itRate->second++;
+		}
+		else
+		{
+			m_ExposureLine.insert(make_pair(lineIndex, 1));
+		}
+		
 	}
 
 	 /** 离开临界区 */   
@@ -115,6 +128,20 @@ bool CGlobalAirLine::GetExposurePointStatus(int lineIndex, int pointIndex)
 	{
 		return false;
 	}
+}
+
+int CGlobalAirLine::GetExposureRateLine(const int lineIndex)
+{
+	if( lineIndex > 0  )
+	{
+		///获取航线已曝光点个数
+		std::map<int, int>::iterator itRate = m_ExposureLine.find( lineIndex);
+		if ( itRate != m_ExposureLine.end() )
+		{
+			return m_ExposureLine.find(lineIndex)->second;
+		}		
+	}
+	return 0;
 }
 
 int CGlobalAirLine::JoinInt(int front,int back)

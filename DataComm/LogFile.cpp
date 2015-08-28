@@ -123,5 +123,5 @@ void CLogFile::GetTime(char * strTM)
 	time(&rawtime);
 	timeInfo = localtime(&rawtime);
 
-	strftime(strTM,80,"%Y-%m-%d %H:%M:%S: ",timeInfo);
+	strftime(strTM,80,"%Y-%m-%d %H:%M:%S ",timeInfo);
 }

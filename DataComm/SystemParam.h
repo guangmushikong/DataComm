@@ -58,10 +58,11 @@ typedef struct _TASK_INFO
 
 enum System_Status
 {
-	SYS_Spiral = 0,
-	SYS_Normal,
+	SYS_Normal =0,
 	SYS_ShootMiss,
-	SYS_BackAirport
+	SYS_Spiral,
+	SYS_BackAirport,
+	SYS_NULL
 };
 
 class CSystemParam
