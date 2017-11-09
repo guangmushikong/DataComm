@@ -9,6 +9,7 @@ std::map<int, int> CGlobalAirLine::m_ExposureLine;
 
 CGlobalAirLine::CGlobalAirLine(void)
 {
+	InitializeCriticalSectionAndSpinCount(&m_csCommunicationSync, 0x80000FA0);
 }
 
 void CGlobalAirLine::Release()

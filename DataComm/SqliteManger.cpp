@@ -27,7 +27,7 @@ bool CSqliteManger::InitDatabase()
 {
 	Task_Info taskInfo;
 	CSystemParam::GetTaskInfo(taskInfo);
-	string DBName = taskInfo.output_path  + taskInfo.task_name + DATABASENAME;
+	std::string DBName = taskInfo.output_path  + taskInfo.task_name + DATABASENAME;
 	m_strDBName = DBName;
 
 	int nRes = sqlite3_open(DBName.c_str(), &m_pDB);
@@ -59,7 +59,7 @@ bool CSqliteManger::InitDatabase()
 		cout<<"create position table Success"<<endl;
 	}
 
-	string strSqlExp = "CREATE TABLE Exposure( \
+	std::string strSqlExp = "CREATE TABLE Exposure( \
 					   ID          INTEGER PRIMARY KEY AUTOINCREMENT,\
 					   DataTime    TEXT,\
 					   gpsTime     NUMERIC(10),\
@@ -282,10 +282,10 @@ bool CSqliteManger::InitSysFromDB()
 	int lineIndex, pointIndex;
 	while (stmt->NextRow()) 
 	{  
-		string strline = stmt->ValueString(0);
+		std::string strline = stmt->ValueString(0);
 		lineIndex = atoi(strline.c_str());
 
-		string strpoint = stmt->ValueString(1);
+		std::string strpoint = stmt->ValueString(1);
 		pointIndex = atoi(strpoint.c_str());
 
 		CGlobalAirLine::GetInstance()->SetExposurePoint(lineIndex, pointIndex);
@@ -300,10 +300,10 @@ bool CSqliteManger::InitSysFromDB()
 	int lineNum = 0, sequence = 0;
 	while (stmtf->NextRow()) 
 	{  
-		string strline = stmtf->ValueString(0);
+		std::string strline = stmtf->ValueString(0);
 		lineNum = atoi(strline.c_str());
 
-		string strpoint = stmtf->ValueString(1);
+		std::string strpoint = stmtf->ValueString(1);
 		sequence = atoi(strpoint.c_str());
 
 		CURRENT_POINT nextPT;
@@ -320,7 +320,7 @@ bool CSqliteManger::InitSysFromDB()
 
 	while (stmts->NextRow()) 
 	{  
-		string strpeType = stmts->ValueString(0);
+		std::string strpeType = stmts->ValueString(0);
 		int type = atoi(strpeType.c_str());
 		CSystemParam::SetSystemStatus((System_Status)type);
 	}
